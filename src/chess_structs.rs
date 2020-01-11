@@ -11,6 +11,14 @@ pub struct Index2D {
     pub x: usize,
     pub y: usize,
 }
+impl Index2D {
+    pub fn new(x: usize, y: usize) -> Index2D {
+        Index2D {
+            x,
+            y
+        }
+    }
+}
 
 #[derive(Copy, Clone)]
 pub struct Board {
@@ -27,14 +35,14 @@ impl Board {
     pub fn get_next_turn(&mut self) -> Color {
         if self.turn == Color::White {
             Color::Black
-        }else {
+        } else {
             Color::White
         }
     }
 
     pub fn print(&self) {
         for rank in 0..8 {
-            print!(" {} | ", 8- (rank));
+            print!(" {} | ", 8 - (rank));
             for file in 0..8 {
                 let square = match self.squares[rank][file] {
                     Some(piece) => piece.to_char(),
@@ -45,7 +53,7 @@ impl Board {
             println!();
         }
 
-        println!("   +  -  -  -  -  -  -  -  -\n");
+        println!("   +  -  -  -  -  -  -  -  -");
         print!("     ");
         for c in "abcdefgh".chars() {
             print!(" {} ", c);
@@ -62,7 +70,6 @@ pub enum Kind {
     Rook,
     King,
     Queen,
-    Empty,
 }
 
 #[derive(Copy, Clone)]
@@ -110,9 +117,6 @@ impl Piece {
                     Color::White => 'R',
                     Color::Black => 'r',
                 }
-            }
-            Kind::Empty => {
-                '.'
             }
         }
     }

@@ -1,6 +1,6 @@
 use std::iter::Iterator;
-use crate::chess_structs::{Board, Index2D, Color, Kind};
-use san_rs::Piece;
+use crate::chess_structs::{Board, Index2D, Color, Kind, Piece};
+use std::convert::TryInto;
 
 // idea: generate most likely board first, specific for black and white
 // TODO fix grid index directions x y
@@ -8,8 +8,13 @@ use san_rs::Piece;
 
 #[derive(Copy, Clone)]
 pub(crate) struct MoveItr {
+    /// The board we're generating moves from.
     board: Board,
+
+    /// The x-index on the board where we are currently looking for a piece
     x: usize,
+
+    /// The y-index on the board where we are currently looking for a piece
     y: usize,
 }
 impl MoveItr {
@@ -20,6 +25,8 @@ impl MoveItr {
             y: 0
         }
     }
+
+    /// Used for when finding the next piece to move.
     fn inc_pos(&mut self) {
         if self.x < 7 {
             self.x += 1;
@@ -31,6 +38,9 @@ impl MoveItr {
     }
 }
 
+/// Iterates over every square on the board and tries to find pieces to move.
+/// When a piece of correct color is found, returns the Iterator of that piece which
+/// will actually generate boards according to how that piece can move.
 impl Iterator for MoveItr {
     type Item = Box<dyn Iterator<Item = Board>>;
 
@@ -41,19 +51,16 @@ impl Iterator for MoveItr {
          } else {
              match self.board.squares[self.y][self.x] {
                  Some(piece) => {
-                     match piece.color {
-                        Color::White => {
-                            match piece.kind {
-                                Kind::King => {
-                                    let king_itr = KingItr::new(self.board, Index2D{x: self.x, y: self.y});
-                                    Some(Box::new(king_itr))
-                                }
-                                _ => None
-                            }
-                        },
-                         Color::Black => {
-                             self.next()
+                     if piece.color == self.board.turn {
+                         match piece.kind {
+                             Kind::King => {
+                                 let king_itr = KingItr::new(self.board, Index2D{x: self.x, y: self.y});
+                                 Some(Box::new(king_itr))
+                             },
+                             _ => self.next()
                          }
+                     } else {
+                         self.next()
                      }
                  },
                  None => {
@@ -81,7 +88,7 @@ impl KingItr {
     }
 
     pub fn next_move(&mut self, new_pos: Index2D, inc: i32) -> Option<Board> {
-        if is_out_of_board(new_pos) {
+        if is_out_of_board(new_pos.x, new_pos.y) {
             self.nr += inc;
             self.next()
         }
@@ -152,18 +159,8 @@ pub fn is_legal_move(board: Board, _from: Index2D, to: Index2D) -> bool {
     }
 }
 
-pub fn is_out_of_board(new_pos:Index2D) -> bool {
-    let x = new_pos.x;
-    let y = new_pos.y;
-
-//    if x < 0 || x > 8 ||
-//    y < 0 || y > 8 {
-        if x > 8 ||
-        y > 8 {
-        true
-    } else {
-        false
-    }
+pub fn is_out_of_board(y: usize, x: usize) -> bool {
+    x > 7 || y > 7
 }
 
 
