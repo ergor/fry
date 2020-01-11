@@ -4,18 +4,18 @@ mod evaluator;
 
 //use san_rs;
 use crate::chess_structs::{Board, Piece};
-use crate::chess_structs::Kind::{Pawn, King};
+use crate::chess_structs::Kind::{Pawn, King, Knight};
 use crate::chess_structs::Color::{White, Black};
 use crate::generator::MoveItr;
 use crate::evaluator::eval;
 
 fn main() {
-    let board1: Board = Board{
+    let board1: Board = Board {
         squares: [
             [None; 8], // bottom of board (y = rank -1 = 0)
             [None; 8],
             [None, None, None, None, Some(Piece{kind:King, color:White}), None, None, None],
-            [None, None, None, None, Some(Piece{kind:Pawn, color:Black}), None, None, None],
+            [None, None, Some(Piece{kind:Knight, color:Black}), None, Some(Piece{kind:Pawn, color:Black}), None, None, None],
             [None; 8],
             [None; 8],
             [None; 8],

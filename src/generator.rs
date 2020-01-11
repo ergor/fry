@@ -88,7 +88,7 @@ impl KingItr {
     }
 
     pub fn next_move(&mut self, new_pos: Index2D, inc: i32) -> Option<Board> {
-        if is_out_of_board(new_pos.x, new_pos.y) {
+        if new_pos.is_out_of_board() {
             self.nr += inc;
             self.next()
         }
@@ -146,7 +146,7 @@ pub fn create_new_board(board: Board, from: Index2D, to: Index2D) -> Board {
     let mut board = board;
     board.squares[to.y][to.x] = board.squares[from.y][from.x];
     board.squares[from.y][from.x] = None;
-    board.turn = board.get_next_turn();
+    board.turn = board.turn.invert();
 
     let board = board;
     board
@@ -157,10 +157,6 @@ pub fn is_legal_move(board: Board, _from: Index2D, to: Index2D) -> bool {
         Some(piece) =>  piece.color != board.turn,
         None => true
     }
-}
-
-pub fn is_out_of_board(y: usize, x: usize) -> bool {
-    x > 7 || y > 7
 }
 
 
