@@ -1,12 +1,12 @@
 
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Color {
     White,
     Black
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Index2D {
     pub x: usize,
     pub y: usize,
@@ -20,7 +20,7 @@ impl Index2D {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct Board {
     pub squares: [[Option<Piece>; 8]; 8],
     pub turn: Color,
@@ -42,7 +42,8 @@ impl Board {
 
     pub fn print(&self) {
         for rank in 0..8 {
-            print!(" {} | ", 8 - (rank));
+            let rank= 7 - rank;
+            print!(" {} | ", rank+1);
             for file in 0..8 {
                 let square = match self.squares[rank][file] {
                     Some(piece) => piece.to_char(),
@@ -62,7 +63,7 @@ impl Board {
     }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Kind {
     Pawn,
     Bishop,
@@ -72,7 +73,20 @@ pub enum Kind {
     Queen,
 }
 
-#[derive(Copy, Clone)]
+impl Kind {
+    pub fn value(&self) -> i32 {
+        match self {
+            Kind::Pawn => 100,
+            Kind::Bishop => 300,
+            Kind::Knight => 300,
+            Kind::Rook => 500,
+            Kind::King => 9999,
+            Kind::Queen => 900
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
 pub struct Piece {
     pub kind: Kind,
     pub color: Color

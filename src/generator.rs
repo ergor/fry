@@ -165,31 +165,32 @@ pub fn is_out_of_board(y: usize, x: usize) -> bool {
 
 
 mod tests {
-    use crate::chess_structs::{Board, Color, Piece, Index2D};
+    use crate::chess_structs::{Board, Piece, Index2D};
     use crate::chess_structs::Kind::{King, Pawn};
+    use crate::chess_structs::Color::{White, Black};
     use crate::generator::{KingItr, MoveItr};
 
     #[test]
     fn king_test() {
         let board: Board = Board{
             squares: [
+                [None; 8], // bottom of board (y = rank -1 = 0)
+                [None; 8],
+                [None, None, None, None, Some(Piece{kind:King, color:White}), None, None, None],
+                [None, None, None, None, Some(Piece{kind:Pawn, color:Black}), None, None, None],
                 [None; 8],
                 [None; 8],
                 [None; 8],
-                [None; 8],
-                [None, None, None, None, Some(Piece{kind:Pawn, color:Color::Black}), None, None, None],
-                [None, None, None, None, Some(Piece{kind:King, color:Color::White}), None, None, None],
-                [None; 8],
-                [None; 8],
+                [None; 8], // top of board (y = rank -1 = 7)
         ],
-            turn: Color::White,
+            turn: White,
             en_passant: None,
             white_kingside: false,
             white_queenside: false,
             black_kingside: false,
             black_queenside: false
         };
-        let pos = Index2D {x: 4, y:5};
+        let pos = Index2D {x: 4, y:2};
         let mut king_itr= KingItr::new(board, pos);
         assert!(king_itr.next().is_some());
         assert!(king_itr.next().is_some());
