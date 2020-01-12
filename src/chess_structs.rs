@@ -62,6 +62,8 @@ pub struct Board {
     pub white_queenside: bool,
     pub black_kingside: bool,
     pub black_queenside: bool,
+    pub is_white_checked: bool,
+    pub is_black_checked: bool,
 }
 
 impl Board {
@@ -92,7 +94,9 @@ impl Board {
                white_kingside: bool,
                white_queenside: bool,
                black_kingside: bool,
-               black_queenside: bool) -> Board {
+               black_queenside: bool,
+               is_white_checked: bool,
+               is_black_checked: bool) -> Board {
         Board {
             squares: [
                 [None; 8], [None; 8], [None; 8], [None; 8], [None; 8], [None; 8], [None; 8], [None; 8]
@@ -103,6 +107,8 @@ impl Board {
             white_queenside,
             black_kingside,
             black_queenside,
+            is_white_checked,
+            is_black_checked
         }
     }
 }
