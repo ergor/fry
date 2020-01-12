@@ -46,12 +46,12 @@ impl Iterator for MoveItr {
 
     fn next(&mut self) -> Option<Box<dyn Iterator<Item=Board>>> {
         self.inc_pos();
-         if self.y > 7 {
-                None
-         } else {
-             match self.board.squares[self.y][self.x] {
-                 Some(piece) => {
-                     match piece.color {
+        if self.y > 7 {
+            None
+        } else {
+            match self.board.squares[self.y][self.x] {
+                Some(piece) => {
+                    match piece.color {
                         Color::White => {
                             match piece.kind {
                                 Kind::King => {
@@ -61,12 +61,12 @@ impl Iterator for MoveItr {
                                 _ => self.next()
                             }
                         },
-                         Color::Black => self.next()
-                     }
-                 },
-                 None => self.next()
-             }
-         }
+                        Color::Black => self.next()
+                    }
+                },
+                None => self.next()
+            }
+        }
     }
 }
 
@@ -113,7 +113,6 @@ impl KingItr {
             self.next()
         }
     }
-
 }
 
 impl Iterator for KingItr {
