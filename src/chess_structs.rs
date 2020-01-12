@@ -1,18 +1,59 @@
 
+use std::ops;
+use std::ops::Add;
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Color {
     White,
     Black
 }
+impl Color {
+    pub fn invert(self) -> Color {
+        match self {
+            Color::White => Color::Black,
+            Color::Black => Color::White,
+        }
+    }
+}
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Index2D {
     pub x: usize,
     pub y: usize,
 }
+impl Index2D {
+    pub fn new(x: usize, y: usize) -> Index2D {
+        Index2D {
+            x,
+            y
+        }
+    }
 
-#[derive(Copy, Clone)]
+    pub fn is_out_of_board(self) -> bool {
+        self.x > 7 || self.y > 7
+    }
+}
+impl ops::AddAssign<&Vector2D> for Index2D {
+    fn add_assign(&mut self, rhs: &Vector2D) {
+        self.x = (self.x as i64 + rhs.x) as usize;
+        self.y = (self.y as i64 + rhs.y) as usize;
+    }
+}
+
+pub struct Vector2D {
+    pub x: i64,
+    pub y: i64,
+}
+impl Vector2D {
+    pub fn new(x: i64, y: i64) -> Vector2D {
+        Vector2D {
+            x,
+            y
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
 pub struct Board {
     pub squares: [[Option<Piece>; 8]; 8],
     pub turn: Color,
@@ -24,17 +65,10 @@ pub struct Board {
 }
 
 impl Board {
-    pub fn get_next_turn(&mut self) -> Color {
-        if self.turn == Color::White {
-            Color::Black
-        }else {
-            Color::White
-        }
-    }
-
     pub fn print(&self) {
         for rank in 0..8 {
-            print!(" {} | ", 8- (rank));
+            let rank= 7 - rank;
+            print!(" {} | ", rank+1);
             for file in 0..8 {
                 let square = match self.squares[rank][file] {
                     Some(piece) => piece.to_char(),
@@ -45,16 +79,35 @@ impl Board {
             println!();
         }
 
-        println!("   +  -  -  -  -  -  -  -  -\n");
+        println!("   +  -  -  -  -  -  -  -  -");
         print!("     ");
         for c in "abcdefgh".chars() {
             print!(" {} ", c);
         }
         println!();
     }
+
+    pub fn new(turn: Color,
+               en_passant: Option<Index2D>,
+               white_kingside: bool,
+               white_queenside: bool,
+               black_kingside: bool,
+               black_queenside: bool) -> Board {
+        Board {
+            squares: [
+                [None; 8], [None; 8], [None; 8], [None; 8], [None; 8], [None; 8], [None; 8], [None; 8]
+            ],
+            turn,
+            en_passant,
+            white_kingside,
+            white_queenside,
+            black_kingside,
+            black_queenside,
+        }
+    }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Kind {
     Pawn,
     Bishop,
@@ -62,10 +115,22 @@ pub enum Kind {
     Rook,
     King,
     Queen,
-    Empty,
 }
 
-#[derive(Copy, Clone)]
+impl Kind {
+    pub fn value(&self) -> i32 {
+        match self {
+            Kind::Pawn => 100,
+            Kind::Bishop => 300,
+            Kind::Knight => 300,
+            Kind::Rook => 500,
+            Kind::King => 9999,
+            Kind::Queen => 900
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
 pub struct Piece {
     pub kind: Kind,
     pub color: Color
@@ -110,9 +175,6 @@ impl Piece {
                     Color::White => 'R',
                     Color::Black => 'r',
                 }
-            }
-            Kind::Empty => {
-                '.'
             }
         }
     }

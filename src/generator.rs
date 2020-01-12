@@ -1,6 +1,5 @@
 use std::iter::Iterator;
-use crate::chess_structs::{Board, Index2D, Color, Kind};
-use san_rs::Piece;
+use crate::chess_structs::{Board, Index2D, Color, Kind, Piece};
 use std::convert::TryInto;
 
 // idea: generate most likely board first, specific for black and white
@@ -9,8 +8,13 @@ use std::convert::TryInto;
 
 #[derive(Copy, Clone)]
 pub(crate) struct MoveItr {
+    /// The board we're generating moves from.
     board: Board,
+
+    /// The x-index on the board where we are currently looking for a piece
     x: usize,
+
+    /// The y-index on the board where we are currently looking for a piece
     y: usize,
 }
 impl MoveItr {
@@ -21,6 +25,8 @@ impl MoveItr {
             y: 0
         }
     }
+
+    /// Used for when finding the next piece to move.
     fn inc_pos(&mut self) {
         if self.x < 7 {
             self.x += 1;
@@ -32,17 +38,20 @@ impl MoveItr {
     }
 }
 
+/// Iterates over every square on the board and tries to find pieces to move.
+/// When a piece of correct color is found, returns the Iterator of that piece which
+/// will actually generate boards according to how that piece can move.
 impl Iterator for MoveItr {
     type Item = Box<dyn Iterator<Item = Board>>;
 
     fn next(&mut self) -> Option<Box<dyn Iterator<Item=Board>>> {
         self.inc_pos();
-         if self.y > 7 {
-                None
-         } else {
-             match self.board.squares[self.y][self.x] {
-                 Some(piece) => {
-                     match piece.color {
+        if self.y > 7 {
+            None
+        } else {
+            match self.board.squares[self.y][self.x] {
+                Some(piece) => {
+                    match piece.color {
                         Color::White => {
                             match piece.kind {
                                 Kind::King => {
@@ -52,12 +61,12 @@ impl Iterator for MoveItr {
                                 _ => self.next()
                             }
                         },
-                         Color::Black => self.next()
-                     }
-                 },
-                 None => self.next()
-             }
-         }
+                        Color::Black => self.next()
+                    }
+                },
+                None => self.next()
+            }
+        }
     }
 }
 
@@ -104,7 +113,6 @@ impl KingItr {
             self.next()
         }
     }
-
 }
 
 impl Iterator for KingItr {
@@ -151,7 +159,7 @@ pub fn create_new_board(board: Board, from: Index2D, to: Index2D) -> Board {
     let mut board = board;
     board.squares[to.y][to.x] = board.squares[from.y][from.x];
     board.squares[from.y][from.x] = None;
-    board.turn = board.get_next_turn();
+    board.turn = board.turn.invert();
 
     let board = board;
     board
@@ -181,31 +189,32 @@ fn add(u: usize, i: i32) -> Option<usize> {
 }
 
 mod tests {
-    use crate::chess_structs::{Board, Color, Piece, Index2D};
+    use crate::chess_structs::{Board, Piece, Index2D};
     use crate::chess_structs::Kind::{King, Pawn};
+    use crate::chess_structs::Color::{White, Black};
     use crate::generator::{KingItr, MoveItr};
 
     #[test]
     fn king_test() {
         let board: Board = Board{
             squares: [
+                [None; 8], // bottom of board (y = rank -1 = 0)
+                [None; 8],
+                [None, None, None, None, Some(Piece{kind:King, color:White}), None, None, None],
+                [None, None, None, None, Some(Piece{kind:Pawn, color:Black}), None, None, None],
                 [None; 8],
                 [None; 8],
                 [None; 8],
-                [None; 8],
-                [None, None, None, None, Some(Piece{kind:Pawn, color:Color::Black}), None, None, None],
-                [None, None, None, None, Some(Piece{kind:King, color:Color::White}), None, None, None],
-                [None; 8],
-                [None; 8],
+                [None; 8], // top of board (y = rank -1 = 7)
         ],
-            turn: Color::White,
+            turn: White,
             en_passant: None,
             white_kingside: false,
             white_queenside: false,
             black_kingside: false,
             black_queenside: false
         };
-        let pos = Index2D {x: 4, y:5};
+        let pos = Index2D {x: 4, y:2};
         let mut king_itr= KingItr::new(board, pos);
         assert!(king_itr.next().is_some());
         assert!(king_itr.next().is_some());
