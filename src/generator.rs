@@ -51,21 +51,20 @@ impl Iterator for MoveItr {
          } else {
              match self.board.squares[self.y][self.x] {
                  Some(piece) => {
-                     if piece.color == self.board.turn {
-                         match piece.kind {
-                             Kind::King => {
-                                 let king_itr = KingItr::new(self.board, Index2D{x: self.x, y: self.y});
-                                 Some(Box::new(king_itr))
-                             },
-                             _ => self.next()
-                         }
-                     } else {
-                         self.next()
+                     match piece.color {
+                        Color::White => {
+                            match piece.kind {
+                                Kind::King => {
+                                    let king_itr = KingItr::new(self.board, Index2D{x: self.x, y: self.y});
+                                    Some(Box::new(king_itr))
+                                }
+                                _ => self.next()
+                            }
+                        },
+                         Color::Black => self.next()
                      }
                  },
-                 None => {
-                     self.next()
-                 }
+                 None => self.next()
              }
          }
     }
@@ -87,20 +86,34 @@ impl KingItr {
         }
     }
 
-    pub fn next_move(&mut self, new_pos: Index2D, inc: i32) -> Option<Board> {
-        if new_pos.is_out_of_board() {
-            self.nr += inc;
-            self.next()
-        }
-        else if is_legal_move(self.curr, self.pos, new_pos) {
-            self.nr += 1;
-            Some(create_new_board(self.curr, self.pos, new_pos))
-        }
-        else {
+    fn next_move(&mut self, y_vec:i32, x_vec:i32, inc: i32) -> Option<Board> {
+        let opt_y = add(self.pos.y, y_vec);
+        let opt_x = add(self.pos.x, x_vec);
+        let is_legal = false;
+        if let Some(new_y) = opt_y {
+            if let Some(new_x) = opt_x {
+                if is_out_of_board(self.pos, new_y, new_x) {
+                    self.nr += inc;
+                    self.next()
+                }
+                else if is_legal_move(self.curr, self.pos, Index2D{x: new_x, y:new_y}) {
+                    self.nr += 1;
+                    Some(create_new_board(self.curr, self.pos, Index2D{x: new_x, y:new_y}))
+                }
+                else {
+                    self.nr += 1;
+                    self.next()
+                }
+            } else {
+                self.nr += 1;
+                self.next()
+            }
+        } else {
             self.nr += 1;
             self.next()
         }
     }
+
 }
 
 impl Iterator for KingItr {
@@ -110,33 +123,34 @@ impl Iterator for KingItr {
         let pos = self.pos;
         match  self.nr{
             1 => {
-                self.next_move(Index2D{ x: pos.x, y: pos.y + 1 }, 3)
+                self.next_move(0, 1, 3)
             }
             2 => {
-                self.next_move(Index2D{ x: pos.x + 1, y: pos.y + 1 }, 1)
+                self.next_move(1, 1, 1)
             }
             3 => {
-                self.next_move(Index2D{ x: pos.x - 1, y: pos.y + 1 }, 1)
+                self.next_move(-1, 1, 1)
             }
             4 => {
-                self.next_move(Index2D{ x: pos.x, y: pos.y - 1 }, 3)
+                self.next_move(0, -1, 3)
             }
             5 => {
-                self.next_move(Index2D{ x: pos.x + 1, y: pos.y - 1 }, 1)
+                self.next_move(1, -1, 1)
             }
             6 => {
-                self.next_move(Index2D{ x: pos.x - 1, y: pos.y - 1}, 1)
+                self.next_move(-1, -1, 1)
             }
             7 => {
-                self.next_move(Index2D{ x: pos.x - 1, y: pos.y }, 1)
+                self.next_move(-1, 0, 1)
             }
             8 => {
-                self.next_move(Index2D{ x: pos.x + 1, y: pos.y }, 1)
+                self.next_move(1, 0, 1)
             }
             _ => None
         }
      }
  }
+
 
 pub fn create_new_board(board: Board, from: Index2D, to: Index2D) -> Board {
     println!("from x: {}", from.x);
@@ -159,6 +173,21 @@ pub fn is_legal_move(board: Board, _from: Index2D, to: Index2D) -> bool {
     }
 }
 
+pub fn is_out_of_board(old_pos:Index2D, y:usize, x:usize) -> bool {
+    if  x > 7 || y > 7 {
+        true
+    } else {
+        false
+    }
+}
+
+fn add(u: usize, i: i32) -> Option<usize> {
+    if i.is_negative() {
+        u.checked_sub(i.wrapping_abs() as u32 as usize)
+    } else {
+        u.checked_add(i as usize)
+    }
+}
 
 mod tests {
     use crate::chess_structs::{Board, Piece, Index2D};
