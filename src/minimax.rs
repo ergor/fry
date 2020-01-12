@@ -5,8 +5,10 @@ use crate::evaluator::{eval};
 
 const MAX_DEPTH: i32 = 10;
 
+
+
 pub fn search(board: &Board) -> () {
-    let mut move_iter = MoveItr::new(*board);
+    let move_iter = board.iter();
 
     let moves: Vec<Board> = move_iter.flat_map(|iter| iter.map(|a| a)).collect();
     let evals: Vec<(&Board, i32)> = moves.iter().map(|board| (board, minimax(board, MAX_DEPTH, board.turn == White))).collect();
@@ -24,6 +26,8 @@ fn minimax(board: &Board, depth: i32, is_whites_turn: bool) -> i32 {
 
     if is_whites_turn {
         let max_eval = i32::min_value();
+        let move_iter = MoveItr::new(board);
+        let moves: Vec<Board> = move_iter.flat_map(|iter| iter.map(|a| a)).collect();
     }
 
     return eval(board);

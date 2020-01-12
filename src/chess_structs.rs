@@ -1,6 +1,7 @@
 
 use std::ops;
-use std::ops::Add;
+use crate::generator::MoveItr;
+use std::marker::PhantomData;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Color {
@@ -33,10 +34,28 @@ impl Index2D {
         self.x > 7 || self.y > 7
     }
 }
+// TODO: remove checked add when thoroughly tested
 impl ops::AddAssign<&Vector2D> for Index2D {
     fn add_assign(&mut self, rhs: &Vector2D) {
-        self.x = (self.x as i64 + rhs.x) as usize;
-        self.y = (self.y as i64 + rhs.y) as usize;
+        self.x = ((self.x as i64).checked_add(rhs.x)).unwrap() as usize;
+        self.y = ((self.y as i64).checked_add(rhs.y)).unwrap() as usize;
+    }
+}
+// TODO: remove checked add when thoroughly tested
+impl ops::Add<Vector2D> for Index2D {
+    type Output = Option<Index2D>;
+
+    fn add(self, rhs: Vector2D) -> Self::Output {
+        let x = (self.x as i64).checked_add(rhs.x);
+        let y = (self.y as i64).checked_add(rhs.y);
+        if x.is_some() && y.is_some() {
+            Some(Index2D {
+                x: x.unwrap() as usize,
+                y: y.unwrap() as usize
+            })
+        } else {
+            None
+        }
     }
 }
 
@@ -109,6 +128,14 @@ impl Board {
             black_queenside,
             is_white_checked,
             is_black_checked
+        }
+    }
+
+    pub fn iter(&self) -> MoveItr {
+        MoveItr {
+            board: &self,
+            x: 0,
+            y: 0,
         }
     }
 }
