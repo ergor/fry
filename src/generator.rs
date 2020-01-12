@@ -77,6 +77,34 @@ impl KingItr {
         }
     }
 
+    fn next_move(&mut self, y_vec:i32, x_vec:i32, inc: i32) -> Option<Board> {
+        let opt_y = add(self.pos.y, y_vec);
+        let opt_x = add(self.pos.x, x_vec);
+        let is_legal = false;
+        if let Some(new_y) = opt_y {
+            if let Some(new_x) = opt_x {
+                if is_out_of_board(self.pos, new_y, new_x) {
+                    self.nr += inc;
+                    self.next()
+                }
+                else if is_legal_move(self.curr, self.pos, Index2D{x: new_x, y:new_y}) {
+                    self.nr += 1;
+                    Some(create_new_board(self.curr, self.pos, Index2D{x: new_x, y:new_y}))
+                }
+                else {
+                    self.nr += 1;
+                    self.next()
+                }
+            } else {
+                self.nr += 1;
+                self.next()
+            }
+        } else {
+            self.nr += 1;
+            self.next()
+        }
+    }
+
 }
 
 impl Iterator for KingItr {
@@ -114,33 +142,6 @@ impl Iterator for KingItr {
      }
  }
 
-pub fn next_move(board_itr: &mut dyn Iterator<Item = Board>, y_vec:i32, x_vec:i32, inc: i32) -> Option<Board> {
-    let opt_y = add(board_itr.pos.y, y_vec);
-    let opt_x = add(board_itr.pos.x, x_vec);
-    let is_legal = false;
-    if let Some(new_y) = opt_y {
-        if let Some(new_x) = opt_x {
-            if is_out_of_board(board_itr.pos, new_y, new_x) {
-                board_itr.nr += inc;
-                board_itr.next()
-            }
-            else if is_legal_move(board_itr.curr, board_itr.pos, Index2D{x: new_x, y:new_y}) {
-                board_itr.nr += 1;
-                Some(create_new_board(board_itr.curr, board_itr.pos, Index2D{x: new_x, y:new_y}))
-            }
-            else {
-                board_itr.nr += 1;
-                board_itr.next()
-            }
-        } else {
-            board_itr.nr += 1;
-            board_itr.next()
-        }
-    } else {
-        board_itr.nr += 1;
-        board_itr.next()
-    }
-}
 
 pub fn create_new_board(board: Board, from: Index2D, to: Index2D) -> Board {
     println!("from x: {}", from.x);
