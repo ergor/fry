@@ -1,7 +1,6 @@
 
 use std::ops;
-use crate::generator::MoveItr;
-use std::marker::PhantomData;
+use crate::generator::IteratorItr;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Color {
@@ -128,14 +127,6 @@ impl Board {
             black_queenside,
             is_white_checked,
             is_black_checked
-        }
-    }
-
-    pub fn iter(&self) -> MoveItr {
-        MoveItr {
-            board: &self,
-            x: 0,
-            y: 0,
         }
     }
 }

@@ -1,5 +1,5 @@
 use crate::chess_structs::Board;
-use crate::generator::MoveItr;
+use crate::generator::IteratorItr;
 use crate::chess_structs::Color::White;
 use crate::evaluator::{eval};
 
@@ -26,7 +26,7 @@ fn minimax(board: &Board, depth: i32, is_whites_turn: bool) -> i32 {
 
     if is_whites_turn {
         let max_eval = i32::min_value();
-        let move_iter = MoveItr::new(board);
+        let move_iter = board.iter();
         let moves: Vec<Board> = move_iter.flat_map(|iter| iter.map(|a| a)).collect();
     }
 

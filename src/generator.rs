@@ -34,25 +34,17 @@ const VECTORS: [(Vector2D, i32, i32); 8+8] = [
 ];
 
 #[derive(Copy, Clone)]
-pub struct MoveItr<'a> {
+pub struct IteratorItr<'a> {
     /// The board we're generating moves from.
-    pub board: &'a Board,
+    board: &'a Board,
 
     /// The x-index on the board where we are currently looking for a piece
-    pub x: usize,
+    x: usize,
 
     /// The y-index on the board where we are currently looking for a piece
-    pub y: usize,
+    y: usize,
 }
-impl<'a> MoveItr<'a> {
-    pub fn new(board: &Board) -> MoveItr {
-        MoveItr {
-            board,
-            x: 0,
-            y: 0,
-        }
-    }
-
+impl<'a> IteratorItr<'a> {
     /// Used for when finding the next piece to move.
     fn inc_pos(&mut self) {
         if self.x < 7 {
@@ -65,13 +57,23 @@ impl<'a> MoveItr<'a> {
     }
 }
 
+impl Board {
+    pub fn iter(&self) -> IteratorItr {
+        IteratorItr {
+            board: self,
+            x: 0,
+            y: 0
+        }
+    }
+}
+
 /// Iterates over every square on the board and tries to find pieces to move.
 /// When a piece of correct color is found, returns the Iterator of that piece which
 /// will actually generate boards according to how that piece can move.
-impl<'a> Iterator for MoveItr<'a> {
+impl<'a> Iterator for IteratorItr<'a> {
     type Item = Box<dyn Iterator<Item = Board> + 'a>;
 
-    fn next(&mut self) -> Option<Box<dyn Iterator<Item= Board>  + 'a>> {
+    fn next(&mut self) -> Option<Self::Item> {
         self.inc_pos();
         if self.y > 7 {
             None
@@ -98,43 +100,65 @@ impl<'a> Iterator for MoveItr<'a> {
 }
 
 #[derive(Clone)]
-struct KingItr<'a> {
+struct GenericItr<'a> {
     initial_board: &'a Board,
-    pos: Index2D,
-    nr: i32
+    initial_pos: Index2D,
+    current_itrn: i32
 }
+
+struct KnightItr<'a>(GenericItr<'a>);
+struct RookItr<'a>(GenericItr<'a>);
+
+impl<'a> Iterator for KnightItr<'a> {
+    type Item = ();
+
+    fn next(&mut self) -> Option<Self::Item> {
+        unimplemented!()
+    }
+}
+
+impl<'a> Iterator for RookItr<'a> {
+    type Item = ();
+
+    fn next(&mut self) -> Option<Self::Item> {
+        unimplemented!()
+    }
+}
+
+struct KingItr<'a>(GenericItr<'a>);
 
 impl<'a> KingItr<'a> {
     pub fn new(board: &Board, pos: Index2D) -> KingItr {
-        KingItr {
+        KingItr(GenericItr {
             initial_board: board,
-            pos,
-            nr: 1
-        }
+            initial_pos: pos,
+            current_itrn: 1
+        })
     }
 
     fn next_move(&mut self, vect: Vector2D, inc: i32) -> Option<Board> {
-        let new_pos = self.pos + vect;
+        let KingItr(super_self) = self;
+        let new_pos = super_self.initial_pos + vect;
 
         if let Some(new_pos) = new_pos {
             if new_pos.is_out_of_board() {
-                self.nr += inc;
+                super_self.current_itrn += inc;
                 self.next()
             }
-            else if is_square_empty_or_enemy(self.initial_board, self.pos, new_pos) {
-                self.nr += 1;
-                let new_board = create_new_board(self.initial_board, self.pos, new_pos);
-                match self.initial_board.turn {
+            else if is_square_empty_or_enemy(super_self.initial_board, super_self.initial_pos, new_pos) {
+                super_self.current_itrn += 1;
+                let new_board = create_new_board(super_self.initial_board, super_self.initial_pos, new_pos);
+                match super_self.initial_board.turn {
                     Color::White => if new_board.is_white_checked { self.next() } else { Some(new_board) },
                     Color::Black => if new_board.is_black_checked { self.next() } else { Some(new_board) }
                 }
             }
             else {
-                self.nr += 1;
+                super_self.current_itrn += 1;
                 self.next()
             }
         } else {
-            self.nr += 1;
+            super_self.current_itrn += 1;
             self.next()
         }
     }
@@ -144,8 +168,7 @@ impl<'a> Iterator for KingItr<'a> {
     type Item = Board;
 
     fn next(&mut self) -> Option<Board> {
-        let pos = self.pos;
-        match  self.nr{
+        match self.0.current_itrn {
             1 => {
                 self.next_move(Vector2D::new(1, 0), 3)
             }
@@ -269,7 +292,7 @@ fn is_check(board: &Board, pos: Index2D, king: &Piece) -> (Color, bool) {
 
 mod tests {
     use crate::chess_structs::{Board, Piece, Index2D, Color, Kind};
-    use crate::generator::{KingItr, MoveItr, checks};
+    use crate::generator::{KingItr, IteratorItr, checks};
 
     #[test]
     fn king_test() {
@@ -306,7 +329,7 @@ mod tests {
 
         let mut new_board:Option<Board> = None;
 
-        let mut move_itr = MoveItr::new(&board);
+        let mut move_itr = board.iter();
         if let Some(mut i) = move_itr.next() {
             let itr = i.as_mut();
             new_board = itr.next();

@@ -5,7 +5,7 @@ mod minimax;
 
 //use san_rs;
 use crate::chess_structs::{Board, Piece, Kind, Color};
-use crate::generator::MoveItr;
+use crate::generator::IteratorItr;
 use crate::evaluator::eval;
 use crate::minimax::search;
 
