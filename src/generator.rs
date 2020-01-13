@@ -4,6 +4,13 @@ use std::marker::PhantomData;
 
 // idea: generate most likely board first, specific for black and white
 
+#[macro_export]
+macro_rules! board_stream {
+    ( $board:expr ) => {
+        $board.iter().flat_map(|iter_itr| iter_itr.map(|a| a))
+    };
+}
+
 // Attack vector kind mask bits
 const KING_VECTOR:   i32 = 1 << 1;
 const QUEEN_VECTOR:  i32 = 1 << 2;
@@ -80,17 +87,16 @@ impl<'a> Iterator for IteratorItr<'a> {
         } else {
             match self.board.squares[self.y][self.x] {
                 Some(piece) => {
-                    match piece.color {
-                        Color::White => {
-                            match piece.kind {
-                                Kind::King => {
-                                    let king_itr = KingItr::new(self.board, Index2D{x: self.x, y: self.y});
-                                    Some(Box::new(king_itr))
-                                }
-                                _ => self.next()
+                    if piece.color == self.board.turn  {
+                        match piece.kind {
+                            Kind::King => {
+                                let king_itr = KingItr::new(self.board, Index2D{x: self.x, y: self.y});
+                                Some(Box::new(king_itr))
                             }
-                        },
-                        Color::Black => self.next()
+                            _ => self.next()
+                        }
+                    } else {
+                        self.next()
                     }
                 },
                 None => self.next()
