@@ -7,7 +7,7 @@ use std::marker::PhantomData;
 #[macro_export]
 macro_rules! board_stream {
     ( $board:expr ) => {
-        $board.iter().flat_map(|iter_itr| iter_itr.map(|a| a))
+        $board.iter().flatten();
     };
 }
 
