@@ -1,6 +1,5 @@
 
 use std::ops;
-use crate::generator::IteratorItr;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Color {

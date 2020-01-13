@@ -1,22 +1,20 @@
 use crate::chess_structs::Board;
-use crate::generator::IteratorItr;
 use crate::chess_structs::Color::White;
 use crate::evaluator;
 use std::cmp;
 
 const INITIAL_DEPTH: i32 = 5;
 
-static mut nodes_visited: i64 = 0;
+static mut NODES_VISITED: i64 = 0;
 
 pub fn search(board: &Board) -> () {
-    let move_iter = board.iter();
-
+    unsafe { NODES_VISITED = 0; }
     let moves: Vec<Board> = board_stream!(board).collect();
     let evals: Vec<(&Board, i32)> = moves.iter().map(|board| (board, minimax(board, INITIAL_DEPTH, i32::min_value(), i32::max_value(), board.turn == White))).collect();
     for (board, eval) in evals {
         board.print();
         println!("Evaluation: {}\n", eval);
-        unsafe { println!("moves computed: {}", nodes_visited); }
+        unsafe { println!("moves computed: {}", NODES_VISITED); }
     }
 }
 
@@ -26,7 +24,7 @@ pub fn search(board: &Board) -> () {
 fn minimax(board: &Board, depth: i32, mut alpha: i32, mut beta: i32, is_whites_turn: bool) -> i32 {
 
     if depth == 0 {
-        unsafe { nodes_visited += 1; }
+        unsafe { NODES_VISITED += 1; }
         return evaluator::eval(board);
     }
 

@@ -1,6 +1,5 @@
 use std::iter::Iterator;
 use crate::chess_structs::{Board, Index2D, Color, Kind, Piece, Vector2D};
-use std::marker::PhantomData;
 
 // idea: generate most likely board first, specific for black and white
 
@@ -151,7 +150,7 @@ impl<'a> KingItr<'a> {
                 super_self.current_itrn += inc;
                 self.next()
             }
-            else if is_square_empty_or_enemy(super_self.initial_board, super_self.initial_pos, new_pos) {
+            else if is_square_empty_or_enemy(super_self.initial_board, new_pos) {
                 super_self.current_itrn += 1;
                 let new_board = create_new_board(super_self.initial_board, super_self.initial_pos, new_pos);
                 match super_self.initial_board.turn {
@@ -222,7 +221,7 @@ pub fn create_new_board(board: &Board, from: Index2D, to: Index2D) -> Board {
     board
 }
 
-pub fn is_square_empty_or_enemy(board: &Board, _from: Index2D, to: Index2D) -> bool {
+pub fn is_square_empty_or_enemy(board: &Board, to: Index2D) -> bool {
     match board.squares[to.y][to.x] {
         Some(piece) =>  piece.color != board.turn,
         None => true
@@ -246,7 +245,7 @@ fn checks(board: &Board) -> (bool, bool) {
                 None => None
             })
         )
-        .filter(|(pos, piece)| piece.kind == Kind::King)
+        .filter(|(_, piece)| piece.kind == Kind::King)
         .map(|(pos, king)| is_check(board, pos, king))
         .for_each(|(color, is_checked)| match color {
             Color::White => is_white_checked = is_checked,
@@ -298,7 +297,8 @@ fn is_check(board: &Board, pos: Index2D, king: &Piece) -> (Color, bool) {
 
 mod tests {
     use crate::chess_structs::{Board, Piece, Index2D, Color, Kind};
-    use crate::generator::{KingItr, IteratorItr, checks};
+    use crate::generator::{KingItr};
+    use crate::generator;
 
     #[test]
     fn king_test() {
@@ -358,7 +358,7 @@ mod tests {
                 board.squares[y][x] = Some(Piece { kind: Kind::King, color: Color::White });
                 board.squares[attacker_sq.y][attacker_sq.x] = Some(Piece { kind: Kind::Pawn, color: Color::Black });
                 board.squares[friendly_sq.y][friendly_sq.x] = Some(Piece { kind: Kind::Pawn, color: Color::White });
-                let (is_white_checked, is_black_checked) = checks(&board);
+                let (is_white_checked, is_black_checked) = generator::checks(&board);
                 // black pawn attacks downwards + left/right; check if we're in its path
                 if y == attacker_sq.y - 1 && (x == attacker_sq.x - 1 || x == attacker_sq.x + 1) {
                     assert!(is_white_checked);
@@ -384,7 +384,7 @@ mod tests {
                 board.squares[y][x] = Some(Piece { kind: Kind::King, color: Color::Black });
                 board.squares[attacker_sq.y][attacker_sq.x] = Some(Piece { kind: Kind::Pawn, color: Color::White });
                 board.squares[friendly_sq.y][friendly_sq.x] = Some(Piece { kind: Kind::Pawn, color: Color::Black });
-                let (is_white_checked, is_black_checked) = checks(&board);
+                let (is_white_checked, is_black_checked) = generator::checks(&board);
                 // white pawn attacks upwards + left/right; check if we're in its path
                 if y == attacker_sq.y + 1 && (x == attacker_sq.x - 1 || x == attacker_sq.x + 1) {
                     assert!(is_black_checked);
@@ -424,7 +424,7 @@ mod tests {
                 board.squares[y][x] = Some(Piece { kind: Kind::King, color: Color::White });
                 board.squares[attacker_sq.y][attacker_sq.x] = Some(Piece { kind: Kind::Knight, color: Color::Black });
                 board.squares[friendly_sq.y][friendly_sq.x] = Some(Piece { kind: Kind::Knight, color: Color::White });
-                let (is_white_checked, is_black_checked) = checks(&board);
+                let (is_white_checked, is_black_checked) = generator::checks(&board);
                 if attacked_sqs.iter().any(|attacked_sq| new_sq == *attacked_sq) {
                     assert!(is_white_checked);
                 } else {
@@ -462,7 +462,7 @@ mod tests {
                 board.squares[y][x] = Some(Piece { kind: Kind::King, color: Color::White });
                 board.squares[attacker_sq.y][attacker_sq.x] = Some(Piece { kind: Kind::Rook, color: Color::Black });
                 board.squares[friendly_sq.y][friendly_sq.x] = Some(Piece { kind: Kind::Rook, color: Color::White });
-                let (is_white_checked, is_black_checked) = checks(&board);
+                let (is_white_checked, is_black_checked) = generator::checks(&board);
                 if attacked_sqs.iter().any(|attacked_sq| new_sq == *attacked_sq) {
                     assert!(is_white_checked);
                 } else {

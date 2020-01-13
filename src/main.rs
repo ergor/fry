@@ -6,9 +6,6 @@ mod minimax;
 
 //use san_rs;
 use crate::chess_structs::{Board, Piece, Kind, Color};
-use crate::generator::IteratorItr;
-use crate::evaluator::eval;
-use crate::minimax::search;
 
 fn main() {
     let board1: Board = Board {
@@ -33,16 +30,7 @@ fn main() {
     };
 
     board1.print();
-    search(&board1);
-
-    //let mut move_itr:MoveItr = MoveItr::new(board1);
-    //while let Some(mut p_itr) = move_itr.next() {
-    //    while let Some(new_board) = p_itr.next() {
-    //        new_board.print();
-    //        let score = eval(&new_board);
-    //        println!("Static evaluation:\n{:?}", score);
-    //    }
-    //}
+    minimax::search(&board1);
 }
 
 

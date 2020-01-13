@@ -1,5 +1,5 @@
 
-use crate::chess_structs::{Board, Color, Kind, Piece, Vector2D, Index2D};
+use crate::chess_structs::{Board, Color};
 
 
 pub fn eval(board: &Board) -> i32 {
