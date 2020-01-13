@@ -6,3 +6,4 @@ edition = "2018"
 
 [dependencies]
 san-rs = "0"
+clap = { version = "2.33", default-features = false, features = [ "color" ] }

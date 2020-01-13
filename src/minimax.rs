@@ -1,5 +1,4 @@
-use crate::chess_structs::Board;
-use crate::chess_structs::Color::White;
+use crate::chess_structs::{Board, Color};
 use crate::evaluator;
 use std::cmp;
 
@@ -7,15 +6,49 @@ const INITIAL_DEPTH: i32 = 5;
 
 static mut NODES_VISITED: i64 = 0;
 
-pub fn search(board: &Board) -> () {
-    unsafe { NODES_VISITED = 0; }
-    let moves: Vec<Board> = board_stream!(board).collect();
-    let evals: Vec<(&Board, i32)> = moves.iter().map(|board| (board, minimax(board, INITIAL_DEPTH, i32::min_value(), i32::max_value(), board.turn == White))).collect();
-    for (board, eval) in evals {
-        board.print();
-        println!("Evaluation: {}\n", eval);
-        unsafe { println!("moves computed: {}", NODES_VISITED); }
+struct Evaluation<'a> {
+    board: &'a Board,
+    eval: i32
+}
+
+impl<'a> Evaluation<'a> {
+    fn is_bested_by(&self, other: &Evaluation, who_played: Color) -> bool {
+        match who_played{
+            Color::White => other.eval > self.eval,
+            Color::Black => other.eval < self.eval
+        }
     }
+}
+
+pub fn search(initial_board: &Board) -> Option<Board> {
+    unsafe { NODES_VISITED = 0; }
+    let moves: Vec<Board> = board_stream!(initial_board).collect();
+    let evals: Vec<Evaluation> = moves.iter().map(|board| Evaluation { board, eval: minimax(board, INITIAL_DEPTH, i32::min_value(), i32::max_value(), board.turn == Color::White) }).collect();
+
+    unsafe { println!("moves computed: {}", NODES_VISITED); }
+
+    let mut best_move: Option<Evaluation> = None;
+
+    for evaluation in evals {
+        let evaluation_ref = &evaluation;
+        println!("eval: {}", evaluation_ref.eval);
+        if best_move.is_none() {
+            println!("new best for {:?}: {}", initial_board.turn, evaluation_ref.eval);
+            best_move = Some(evaluation);
+        }
+        else if let Some(current_best) = &best_move {
+            if current_best.is_bested_by(evaluation_ref, initial_board.turn) {
+                println!("new best for {:?}: {}", initial_board.turn, evaluation_ref.eval);
+                best_move = Some(evaluation);
+            }
+        }
+    }
+
+    if best_move.is_none() {
+        return None;
+    }
+
+    return Some(best_move.unwrap().board.to_owned());
 }
 
 // idea: if minimax returns integer min or max, that means someone was out of moves.
