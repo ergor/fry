@@ -3,9 +3,11 @@ mod chess_structs;
 mod generator;
 mod evaluator;
 mod minimax;
+mod game_state;
 
 //use san_rs;
 use crate::chess_structs::{Board, Piece, Kind, Color};
+use crate::game_state::GameState;
 use clap::{App, Arg, ArgMatches};
 use std::process;
 use std::fs;
@@ -52,6 +54,8 @@ fn main() {
         is_black_checked: false,
     };
     starting_board.print();
+
+    let game_state = GameState::new(fry_color, starting_board);
 
     let mut board = starting_board;
     let plies = 0; // half moves played
