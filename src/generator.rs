@@ -111,6 +111,33 @@ struct GenericItr<'a> {
     current_itrn: i32
 }
 
+fn next_move (vect: Vector2D, inc: i32, itr: &mut GenericItr) -> Option<Board> {
+    let new_pos = itr.initial_pos + vect;
+
+    if let Some(new_pos) = new_pos {
+        if new_pos.is_out_of_board() {
+            itr.current_itrn += inc;
+            None
+        }
+        else if is_square_empty_or_enemy(itr.initial_board, new_pos) {
+            itr.current_itrn += 1;
+            let new_board = create_new_board(itr.initial_board, itr.initial_pos, new_pos);
+            match itr.initial_board.turn {
+                Color::White => if new_board.is_white_checked { None } else { Some(new_board) },
+                Color::Black => if new_board.is_black_checked { None } else { Some(new_board) }
+            }
+        }
+        else {
+            itr.current_itrn += 1;
+            None
+        }
+    } else {
+        itr.current_itrn += 1;
+        None
+    }
+}
+
+
 struct KnightItr<'a>(GenericItr<'a>);
 struct RookItr<'a>(GenericItr<'a>);
 
@@ -140,65 +167,50 @@ impl<'a> KingItr<'a> {
             current_itrn: 1
         })
     }
-
-    fn next_move(&mut self, vect: Vector2D, inc: i32) -> Option<Board> {
-        let KingItr(super_self) = self;
-        let new_pos = super_self.initial_pos + vect;
-
-        if let Some(new_pos) = new_pos {
-            if new_pos.is_out_of_board() {
-                super_self.current_itrn += inc;
-                self.next()
-            }
-            else if is_square_empty_or_enemy(super_self.initial_board, new_pos) {
-                super_self.current_itrn += 1;
-                let new_board = create_new_board(super_self.initial_board, super_self.initial_pos, new_pos);
-                match super_self.initial_board.turn {
-                    Color::White => if new_board.is_white_checked { self.next() } else { Some(new_board) },
-                    Color::Black => if new_board.is_black_checked { self.next() } else { Some(new_board) }
-                }
-            }
-            else {
-                super_self.current_itrn += 1;
-                self.next()
-            }
-        } else {
-            super_self.current_itrn += 1;
-            self.next()
-        }
-    }
 }
 
 impl<'a> Iterator for KingItr<'a> {
     type Item = Board;
 
     fn next(&mut self) -> Option<Board> {
-        match self.0.current_itrn {
+        let mut out_of_moves = false;
+        let board = match self.0.current_itrn {
             1 => {
-                self.next_move(Vector2D::new(1, 0), 3)
+                next_move(Vector2D::new(1, 0), 3, &mut self.0)
             }
             2 => {
-                self.next_move(Vector2D::new(1, 1), 1)
+                next_move(Vector2D::new(1, 1), 1,  &mut self.0)
             }
             3 => {
-                self.next_move(Vector2D::new(1, -1), 1)
+                next_move(Vector2D::new(1, -1), 1, &mut self.0)
             }
             4 => {
-                self.next_move(Vector2D::new(-1, 0), 3)
+                next_move(Vector2D::new(-1, 0), 3, &mut self.0)
             }
             5 => {
-                self.next_move(Vector2D::new(-1, 1), 1)
+                next_move(Vector2D::new(-1, 1), 1, &mut self.0)
             }
             6 => {
-                self.next_move(Vector2D::new(-1, -1), 1)
+                next_move(Vector2D::new(-1, -1), 1, &mut self.0)
             }
             7 => {
-                self.next_move(Vector2D::new(0, -1), 1)
+                next_move(Vector2D::new(0, -1), 1, &mut self.0)
             }
             8 => {
-                self.next_move(Vector2D::new(0, 1), 1)
+                next_move(Vector2D::new(0, 1), 1,  &mut self.0)
             }
-            _ => None
+            _ => {
+                out_of_moves = true;
+                None
+            }
+        };
+        if out_of_moves {
+            None
+        } else {
+            match board {
+                Some(_) => board,
+                None => self.next()
+            }
         }
      }
  }
