@@ -1,5 +1,6 @@
 use std::iter::Iterator;
 use crate::chess_structs::{Board, Index2D, Color, Kind, Piece, Vector2D};
+use crate::chess_structs::Kind::Knight;
 
 // idea: generate most likely board first, specific for black and white
 
@@ -88,6 +89,10 @@ impl<'a> Iterator for IteratorItr<'a> {
                 Some(piece) => {
                     if piece.color == self.board.turn  {
                         match piece.kind {
+                            Kind::Knight => {
+                                let knight_itr = KnightItr::new(self.board, Index2D{x: self.x, y: self.y});
+                                Some(Box::new(knight_itr))
+                            }
                             Kind::King => {
                                 let king_itr = KingItr::new(self.board, Index2D{x: self.x, y: self.y});
                                 Some(Box::new(king_itr))
@@ -137,17 +142,8 @@ fn next_move (vect: Vector2D, inc: i32, itr: &mut GenericItr) -> Option<Board> {
     }
 }
 
-
-struct KnightItr<'a>(GenericItr<'a>);
 struct RookItr<'a>(GenericItr<'a>);
 
-impl<'a> Iterator for KnightItr<'a> {
-    type Item = ();
-
-    fn next(&mut self) -> Option<Self::Item> {
-        unimplemented!()
-    }
-}
 
 impl<'a> Iterator for RookItr<'a> {
     type Item = ();
@@ -176,7 +172,7 @@ impl<'a> Iterator for KingItr<'a> {
         let mut out_of_moves = false;
         let board = match self.0.current_itrn {
             1 => {
-                next_move(Vector2D::new(1, 0), 3, &mut self.0)
+                next_move(Vector2D::new(1, 0), 1, &mut self.0)
             }
             2 => {
                 next_move(Vector2D::new(1, 1), 1,  &mut self.0)
@@ -185,7 +181,7 @@ impl<'a> Iterator for KingItr<'a> {
                 next_move(Vector2D::new(1, -1), 1, &mut self.0)
             }
             4 => {
-                next_move(Vector2D::new(-1, 0), 3, &mut self.0)
+                next_move(Vector2D::new(-1, 0), 1, &mut self.0)
             }
             5 => {
                 next_move(Vector2D::new(-1, 1), 1, &mut self.0)
@@ -215,6 +211,63 @@ impl<'a> Iterator for KingItr<'a> {
      }
  }
 
+struct KnightItr<'a>(GenericItr<'a>);
+
+impl<'a> KnightItr<'a> {
+    pub fn new(board: &Board, pos: Index2D) -> KnightItr {
+        KnightItr(GenericItr {
+            initial_board: board,
+            initial_pos: pos,
+            current_itrn: 1
+        })
+    }
+}
+
+impl<'a> Iterator for KnightItr<'a> {
+    type Item = Board;
+
+    fn next(&mut self) -> Option<Board> {
+        let mut out_of_moves = false;
+        let board = match self.0.current_itrn {
+            1 => {
+                next_move(Vector2D::new(2, 1), 1, &mut self.0)
+            }
+            2 => {
+                next_move(Vector2D::new(2, -1), 1,  &mut self.0)
+            }
+            3 => {
+                next_move(Vector2D::new(-2, 1), 1, &mut self.0)
+            }
+            4 => {
+                next_move(Vector2D::new(-2, 1), 1, &mut self.0)
+            }
+            5 => {
+                next_move(Vector2D::new(1, 2), 1, &mut self.0)
+            }
+            6 => {
+                next_move(Vector2D::new(1, -2), 1, &mut self.0)
+            }
+            7 => {
+                next_move(Vector2D::new(-1, 2), 1, &mut self.0)
+            }
+            8 => {
+                next_move(Vector2D::new(-1, -2), 1,  &mut self.0)
+            }
+            _ => {
+                out_of_moves = true;
+                None
+            }
+        };
+        if out_of_moves {
+            None
+        } else {
+            match board {
+                Some(_) => board,
+                None => self.next()
+            }
+        }
+    }
+}
 
 pub fn create_new_board(board: &Board, from: Index2D, to: Index2D) -> Board {
     //println!("from x: {}", from.x);
@@ -309,7 +362,7 @@ fn is_check(board: &Board, pos: Index2D, king: &Piece) -> (Color, bool) {
 
 mod tests {
     use crate::chess_structs::{Board, Piece, Index2D, Color, Kind};
-    use crate::generator::{KingItr};
+    use crate::generator::{KingItr, KnightItr};
     use crate::generator;
 
     #[test]
@@ -354,6 +407,68 @@ mod tests {
         }
 
         assert!(new_board.is_some());
+    }
+    #[test]
+    fn knight_test() {
+        let board: Board = Board{
+            squares: [
+                [None; 8], // bottom of board (y = rank -1 = 0)
+                [None; 8],
+                [None, None, None, None, Some(Piece{kind: Kind::Knight, color: Color::White}), None, None, None],
+                [None, None, None, None, Some(Piece{kind: Kind::Pawn, color: Color::Black}), None, None, None],
+                [None; 8],
+                [None; 8],
+                [None; 8],
+                [None; 8], // top of board (y = rank -1 = 7)
+            ],
+            turn: Color::White,
+            en_passant: None,
+            white_kingside: false,
+            white_queenside: false,
+            black_kingside: false,
+            black_queenside: false,
+            is_white_checked: false,
+            is_black_checked: false,
+        };
+        let pos = Index2D {x: 4, y:2};
+        let mut knight_iter = KnightItr::new(&board, pos);
+        assert!(knight_iter.next().is_some());
+        assert!(knight_iter.next().is_some());
+        assert!(knight_iter.next().is_some());
+        assert!(knight_iter.next().is_some());
+        assert!(knight_iter.next().is_some());
+        assert!(knight_iter.next().is_some());
+        assert!(knight_iter.next().is_some());
+        assert!(knight_iter.next().is_some());
+        // two moves are blocked because it puts the king in check, thus expect 6 positions
+        assert!(knight_iter.next().is_none());
+
+
+        let mut new_board:Option<Board> = None;
+
+        let mut move_itr = board.iter();
+        if let Some(mut i) = move_itr.next() {
+            let itr = i.as_mut();
+            new_board = itr.next();
+            assert!(new_board.is_some());
+            new_board = itr.next();
+            assert!(new_board.is_some());
+            new_board = itr.next();
+            assert!(new_board.is_some());
+            new_board = itr.next();
+            assert!(new_board.is_some());
+            new_board = itr.next();
+            assert!(new_board.is_some());
+            new_board = itr.next();
+            assert!(new_board.is_some());
+            new_board = itr.next();
+            assert!(new_board.is_some());
+            new_board = itr.next();
+            assert!(new_board.is_some());
+            new_board = itr.next();
+        }
+
+        assert!(new_board.is_none());
     }
 
     #[test]
