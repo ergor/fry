@@ -97,6 +97,10 @@ impl<'a> Iterator for IteratorItr<'a> {
                                 let king_itr = KingItr::new(self.board, Index2D{x: self.x, y: self.y});
                                 Some(Box::new(king_itr))
                             }
+                            Kind::Pawn => {
+                                let pawn_itr = PawnItr::new(self.board, Index2D{x: self.x, y: self.y});
+                                Some(Box::new(pawn_itr))
+                            }
                             _ => self.next()
                         }
                     } else {
@@ -116,31 +120,6 @@ struct GenericItr<'a> {
     current_itrn: i32
 }
 
-fn next_move (vect: Vector2D, inc: i32, itr: &mut GenericItr) -> Option<Board> {
-    let new_pos = itr.initial_pos + vect;
-
-    if let Some(new_pos) = new_pos {
-        if new_pos.is_out_of_board() {
-            itr.current_itrn += inc;
-            None
-        }
-        else if is_square_empty_or_enemy(itr.initial_board, new_pos) {
-            itr.current_itrn += 1;
-            let new_board = create_new_board(itr.initial_board, itr.initial_pos, new_pos);
-            match itr.initial_board.turn {
-                Color::White => if new_board.is_white_checked { None } else { Some(new_board) },
-                Color::Black => if new_board.is_black_checked { None } else { Some(new_board) }
-            }
-        }
-        else {
-            itr.current_itrn += 1;
-            None
-        }
-    } else {
-        itr.current_itrn += 1;
-        None
-    }
-}
 
 struct RookItr<'a>(GenericItr<'a>);
 
@@ -269,6 +248,63 @@ impl<'a> Iterator for KnightItr<'a> {
     }
 }
 
+struct PawnItr<'a>(GenericItr<'a>);
+
+impl<'a> PawnItr<'a> {
+    pub fn new(board: &Board, pos: Index2D) -> PawnItr {
+        PawnItr(GenericItr {
+            initial_board: board,
+            initial_pos: pos,
+            current_itrn: 1
+        })
+    }
+}
+
+impl<'a> Iterator for PawnItr<'a> {
+    type Item = Board;
+
+    fn next(&mut self) -> Option<Board> {
+        let mut side = 0;
+        let mut start_pos_y = 1;
+        if self.0.initial_board.turn == Color::Black {
+            side = -1;
+            start_pos_y = 6;
+        }
+
+        let mut out_of_moves = false;
+        let board = match self.0.current_itrn {
+            1 => {
+                if self.0.initial_pos.y == start_pos_y {
+                   None
+                } else {
+                    next_move2(Vector2D::new(0, 2 * side), 1, &mut self.0, is_square_empty)
+                }
+            }
+            2 => {
+                next_move2(Vector2D::new(0, 1 * side), 1,  &mut self.0, is_square_empty)
+            }
+            3 => {
+                next_move2(Vector2D::new(-1, 1 * side), 1, &mut self.0, is_square_enemy)
+            }
+            4 => {
+                next_move2(Vector2D::new(1, 1 * side), 1, &mut self.0, is_square_enemy)
+            }
+            _ => {
+                out_of_moves = true;
+                None
+            }
+        };
+        if out_of_moves {
+            None
+        } else {
+            match board {
+                Some(_) => board,
+                None => self.next()
+            }
+        }
+    }
+}
+
 pub fn create_new_board(board: &Board, from: Index2D, to: Index2D) -> Board {
     //println!("from x: {}", from.x);
     //println!("from y: {}", from.y);
@@ -286,10 +322,54 @@ pub fn create_new_board(board: &Board, from: Index2D, to: Index2D) -> Board {
     board
 }
 
+fn next_move (vect: Vector2D, inc: i32, itr: &mut GenericItr) -> Option<Board> {
+    next_move2(vect, inc, itr, is_square_empty_or_enemy)
+}
+
+fn next_move2 (vect: Vector2D, inc: i32, itr: &mut GenericItr, square_checker: fn(board: &Board, to: Index2D) -> bool) -> Option<Board> {
+    let new_pos = itr.initial_pos + vect;
+
+    if let Some(new_pos) = new_pos {
+        if new_pos.is_out_of_board() {
+            itr.current_itrn += inc;
+            None
+        }
+        else if square_checker(itr.initial_board, new_pos) {
+            itr.current_itrn += 1;
+            let new_board = create_new_board(itr.initial_board, itr.initial_pos, new_pos);
+            match itr.initial_board.turn {
+                Color::White => if new_board.is_white_checked { None } else { Some(new_board) },
+                Color::Black => if new_board.is_black_checked { None } else { Some(new_board) }
+            }
+        }
+        else {
+            itr.current_itrn += 1;
+            None
+        }
+    } else {
+        itr.current_itrn += 1;
+        None
+    }
+}
+
 pub fn is_square_empty_or_enemy(board: &Board, to: Index2D) -> bool {
     match board.squares[to.y][to.x] {
         Some(piece) =>  piece.color != board.turn,
         None => true
+    }
+}
+
+pub fn is_square_empty(board: &Board, to: Index2D) -> bool {
+    match board.squares[to.y][to.x] {
+        Some(_) =>  false,
+        None => true
+    }
+}
+
+pub fn is_square_enemy(board: &Board, to: Index2D) -> bool {
+    match board.squares[to.y][to.x] {
+        Some(piece) =>  piece.color != board.turn,
+        None => false
     }
 }
 
