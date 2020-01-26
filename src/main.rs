@@ -37,11 +37,11 @@ fn main() {
         squares: [
             [None; 8], // bottom of board (y = rank -1 = 0)
             [None; 8],
-            [None, None, None, None, Some(Piece{kind: Kind::King, color: Color::White}), None, None, Some(Piece{kind: Kind::Knight, color: Color::Black})],
-            [None, Some(Piece{kind: Kind::King, color: Color::Black}), Some(Piece{kind: Kind::Knight, color: Color::Black}), None, Some(Piece{kind: Kind::Pawn, color: Color::Black}), None, None, None],
+            [None, None, None, None, Some(Piece{kind: Kind::King, color: Color::White}), None, None, Some(Piece{kind: Kind::Pawn, color: Color::White})],
+            [None, Some(Piece{kind: Kind::King, color: Color::Black}), Some(Piece{kind: Kind::Rook, color: Color::Black}), None, Some(Piece{kind: Kind::Pawn, color: Color::White}), None, None, None],
             [None; 8],
             [None; 8],
-            [None; 8],
+            [None, None, Some(Piece{kind: Kind::Queen, color: Color::White}), None, None, None, None, None],
             [None; 8], // top of board (y = rank -1 = 7)
         ],
         turn: Color::White,

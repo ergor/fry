@@ -1,6 +1,6 @@
 use std::iter::Iterator;
 use crate::chess_structs::{Board, Index2D, Color, Kind, Piece, Vector2D};
-use crate::chess_structs::Kind::Knight;
+use crate::chess_structs::Kind::{Knight, Rook, Bishop, Queen};
 
 // idea: generate most likely board first, specific for black and white
 
@@ -101,7 +101,18 @@ impl<'a> Iterator for IteratorItr<'a> {
                                 let pawn_itr = PawnItr::new(self.board, Index2D{x: self.x, y: self.y});
                                 Some(Box::new(pawn_itr))
                             }
-                            _ => self.next()
+                            Kind::Rook => {
+                                let rook_itr = RookItr::new(self.board, Index2D{x: self.x, y: self.y});
+                                Some(Box::new(rook_itr))
+                            }
+                            Kind::Bishop => {
+                                let bishop_itr = BishopItr::new(self.board, Index2D{x: self.x, y: self.y});
+                                Some(Box::new(bishop_itr))
+                            }
+                            Kind::Queen => {
+                                let queen_itr = QueenItr::new(self.board, Index2D{x: self.x, y: self.y});
+                                Some(Box::new(queen_itr))
+                            }
                         }
                     } else {
                         self.next()
@@ -123,12 +134,161 @@ struct GenericItr<'a> {
 
 struct RookItr<'a>(GenericItr<'a>);
 
+impl<'a> RookItr<'a> {
+    pub fn new(board: &Board, pos: Index2D) -> RookItr {
+        RookItr(GenericItr {
+            initial_board: board,
+            initial_pos: pos,
+            current_itrn: 1
+        })
+    }
+}
 
 impl<'a> Iterator for RookItr<'a> {
-    type Item = ();
+    type Item = Board;
 
     fn next(&mut self) -> Option<Self::Item> {
-        unimplemented!()
+        next_long_move(&mut self.0, true, false)
+    }
+}
+struct BishopItr<'a>(GenericItr<'a>);
+
+impl<'a> BishopItr<'a> {
+    pub fn new(board: &Board, pos: Index2D) -> BishopItr {
+        BishopItr(GenericItr {
+            initial_board: board,
+            initial_pos: pos,
+            current_itrn: 1
+        })
+    }
+}
+
+impl<'a> Iterator for BishopItr<'a> {
+    type Item = Board;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        next_long_move(&mut self.0, false, true)
+    }
+}
+struct QueenItr<'a>(GenericItr<'a>);
+
+impl<'a> QueenItr<'a> {
+    pub fn new(board: &Board, pos: Index2D) -> QueenItr {
+        QueenItr(GenericItr {
+            initial_board: board,
+            initial_pos: pos,
+            current_itrn: 1
+        })
+    }
+}
+
+impl<'a> Iterator for QueenItr<'a> {
+    type Item = Board;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        next_long_move(&mut self.0, true, true)
+    }
+}
+
+fn next_long_move(itr: &mut GenericItr, is_up_down:bool, is_diagonal:bool) -> Option<Board> {
+    match itr.current_itrn {
+        1 ..= 7 => {
+            if !is_up_down {
+                itr.current_itrn = 29;
+                next_long_move(itr, is_up_down, is_diagonal)
+            } else {
+                let x = itr.current_itrn as i64;
+                let y = 0;
+                let next_board = next_move(Vector2D::new(x, y), 1, itr);
+                if next_board.is_none() {
+                    itr.current_itrn = 8;
+                    next_long_move(itr, is_up_down, is_diagonal)
+                } else {
+                    next_board
+                }
+            }
+        }
+        8 ..= 14 => {
+            let x = -(itr.current_itrn as i64 -7);
+            let y = 0;
+            let next_board = next_move(Vector2D::new(x, y), 1, itr);
+            if next_board.is_none() {
+                itr.current_itrn = 15;
+                next_long_move(itr, is_up_down, is_diagonal)
+            } else {
+                next_board
+            }
+        }
+        15 ..= 21 => {
+            let x = 0;
+            let y = itr.current_itrn as i64 - 14;
+            let next_board = next_move(Vector2D::new(x, y), 1, itr);
+            if next_board.is_none() {
+                itr.current_itrn = 22;
+                next_long_move(itr, is_up_down, is_diagonal)
+            } else {
+                next_board
+            }
+        }
+        22 ..= 28 => {
+            let x = 0;
+            let y = -(itr.current_itrn as i64 - 21);
+            let next_board = next_move(Vector2D::new(x, y), 1, itr);
+            if next_board.is_none() {
+                itr.current_itrn = 29;
+                next_long_move(itr, is_up_down, is_diagonal)
+            } else {
+                next_board
+            }
+        }//diagonal
+        29 ..= 35 => {
+            if !is_diagonal {
+              None
+            } else {
+                let x = itr.current_itrn as i64 - 28;
+                let y = itr.current_itrn as i64 - 28;
+                let next_board = next_move(Vector2D::new(x, y), 1, itr);
+                if next_board.is_none() {
+                    itr.current_itrn = 36;
+                    next_long_move(itr, is_up_down, is_diagonal)
+                } else {
+                    next_board
+                }
+            }
+        }
+        36 ..= 42 => {
+            let x = -(itr.current_itrn as i64 - 35);
+            let y = itr.current_itrn as i64 - 35;
+            let next_board = next_move(Vector2D::new(x, y), 1, itr);
+            if next_board.is_none() {
+                itr.current_itrn = 43;
+                next_long_move(itr, is_up_down, is_diagonal)
+            } else {
+                next_board
+            }
+        }
+        43 ..= 49 => {
+            let x = itr.current_itrn as i64 - 42;
+            let y = -(itr.current_itrn as i64 - 42);
+            let next_board = next_move(Vector2D::new(x, y), 1, itr);
+            if next_board.is_none() {
+                itr.current_itrn = 50;
+                next_long_move(itr, is_up_down, is_diagonal)
+            } else {
+                next_board
+            }
+        }
+        50 ..= 56 => {
+            let x = -(itr.current_itrn as i64 - 49);
+            let y = -(itr.current_itrn as i64 - 49);
+            let next_board = next_move(Vector2D::new(x, y), 1, itr);
+            if next_board.is_none() {
+                None
+            } else {
+                next_board
+            }
+        }
+        _ => None
     }
 }
 
@@ -442,7 +602,7 @@ fn is_check(board: &Board, pos: Index2D, king: &Piece) -> (Color, bool) {
 
 mod tests {
     use crate::chess_structs::{Board, Piece, Index2D, Color, Kind};
-    use crate::generator::{KingItr, KnightItr};
+    use crate::generator::{KingItr, KnightItr, RookItr, BishopItr};
     use crate::generator;
 
     #[test]
@@ -549,6 +709,75 @@ mod tests {
         }
 
         assert!(new_board.is_none());
+    }
+
+    #[test]
+    fn rook_test() {
+        let board: Board = Board{
+            squares: [
+                [None; 8], // bottom of board (y = rank -1 = 0)
+                [None; 8],
+                [None, None, None, None, Some(Piece{kind: Kind::Rook, color: Color::Black}), None, None, None],
+                [None, None, None, None, Some(Piece{kind: Kind::Pawn, color: Color::Black}), None, None, None],
+                [None; 8],
+                [None; 8],
+                [None; 8],
+                [None; 8], // top of board (y = rank -1 = 7)
+            ],
+            turn: Color::Black,
+            en_passant: None,
+            white_kingside: false,
+            white_queenside: false,
+            black_kingside: false,
+            black_queenside: false,
+            is_white_checked: false,
+            is_black_checked: false,
+        };
+        let pos = Index2D {x: 4, y:2};
+        let mut rook_iter = RookItr::new(&board, pos);
+        assert!(rook_iter.next().is_some());
+        assert!(rook_iter.next().is_some());
+        assert!(rook_iter.next().is_some());
+        assert!(rook_iter.next().is_some());
+        assert!(rook_iter.next().is_some());
+        assert!(rook_iter.next().is_some());
+        assert!(rook_iter.next().is_some());
+        assert!(rook_iter.next().is_some());
+        assert!(rook_iter.next().is_some());
+        // two moves are blocked because it puts the king in check, thus expect 6 positions
+        assert!(rook_iter.next().is_none());
+    }
+    #[test]
+    fn bishop_test() {
+        let board: Board = Board{
+            squares: [
+                [None; 8], // bottom of board (y = rank -1 = 0)
+                [None, None, Some(Piece{kind: Kind::Bishop, color: Color::Black}), None, None, None,  None, None],
+                [None; 8],
+                [None, None, None, None, Some(Piece{kind: Kind::Pawn, color: Color::Black}), None, None, None],
+                [None; 8],
+                [None; 8],
+                [None; 8],
+                [None; 8], // top of board (y = rank -1 = 7)
+            ],
+            turn: Color::Black,
+            en_passant: None,
+            white_kingside: false,
+            white_queenside: false,
+            black_kingside: false,
+            black_queenside: false,
+            is_white_checked: false,
+            is_black_checked: false,
+        };
+        let pos = Index2D {x: 2, y:1};
+        let mut bishop_iter = BishopItr::new(&board, pos);
+        assert!(bishop_iter.next().is_some());
+        assert!(bishop_iter.next().is_some());
+        assert!(bishop_iter.next().is_some());
+        assert!(bishop_iter.next().is_some());
+        assert!(bishop_iter.next().is_some());
+        // two moves are blocked because it puts the king in check, thus expect 6 positions
+        assert!(bishop_iter.next().is_none());
     }
 
     #[test]
