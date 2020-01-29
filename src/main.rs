@@ -4,6 +4,7 @@ mod generator;
 mod evaluator;
 mod minimax;
 mod game_state;
+mod libmappings;
 
 //use san_rs;
 use crate::chess_structs::{Board, Piece, Kind, Color};
