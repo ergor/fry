@@ -1,3 +1,4 @@
+use crate::chess_structs;
 use crate::chess_structs::{Color, Board, Index2D, Piece};
 use crate::libmappings::mappings_fenrs;
 
@@ -30,12 +31,8 @@ impl GameState {
         let mut board_state = Board::new(
             active_color,
             en_passant,
-            game_state.castling_availability & fen_rs::WHITE_KINGSIDE > 0,
-            game_state.castling_availability & fen_rs::WHITE_QUEENSIDE > 0,
-            game_state.castling_availability & fen_rs::BLACK_KINGSIDE > 0,
-            game_state.castling_availability & fen_rs::BLACK_QUEENSIDE > 0,
-            false,
-            false);
+            mappings_fenrs::map_castling_availability(game_state.castling_availability),
+            chess_structs::NO_CHECKS);
 
         for rank in game_state.pieces.iter() {
             for piece in rank {

@@ -1,6 +1,7 @@
 
 pub mod mappings_fenrs {
-    use crate::chess_structs::{Color, Index2D, Piece, Kind};
+    use crate::chess_structs;
+    use crate::chess_structs::{Color, Index2D, Piece, Kind, CastlingBitField};
 
     pub fn map_color(color: fen_rs::Color) -> Color {
         match color {
@@ -29,6 +30,25 @@ pub mod mappings_fenrs {
             kind: map_piece_kind(piece.kind),
             color: map_color(piece.color)
         }
+    }
+
+    pub fn map_castling_availability(input: i32) -> CastlingBitField {
+        let mut value: CastlingBitField = chess_structs::CASTLING_UNAVAILABLE;
+
+        if input & fen_rs::WHITE_KINGSIDE > 0 {
+            value |= chess_structs::WHITE_KINGSIDE;
+        }
+        if input & fen_rs::WHITE_QUEENSIDE > 0 {
+            value |= chess_structs::WHITE_QUEENSIDE;
+        }
+        if input & fen_rs::BLACK_KINGSIDE > 0 {
+            value |= chess_structs::BLACK_KINGSIDE;
+        }
+        if input & fen_rs::BLACK_QUEENSIDE > 0 {
+            value |= chess_structs::BLACK_QUEENSIDE;
+        }
+
+        return value;
     }
 }
 

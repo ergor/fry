@@ -1,4 +1,5 @@
 use std::iter::Iterator;
+use crate::chess_structs;
 use crate::chess_structs::{Board, Index2D, Color, Kind, Piece, Vector2D};
 use crate::chess_structs::Kind::{Knight, Rook, Bishop, Queen};
 
@@ -12,13 +13,13 @@ macro_rules! board_stream {
 }
 
 // Attack vector kind mask bits
-const KING_VECTOR:   i32 = 1 << 1;
-const QUEEN_VECTOR:  i32 = 1 << 2;
-const ROOK_VECTOR:   i32 = 1 << 3;
-const BISHOP_VECTOR: i32 = 1 << 4;
-const KNIGHT_VECTOR: i32 = 1 << 5;
-const WHITE_PAWN:    i32 = 1 << 6;
-const BLACK_PAWN:    i32 = 1 << 7;
+const KING_VECTOR:   i32 = 1 << 0;
+const QUEEN_VECTOR:  i32 = 1 << 1;
+const ROOK_VECTOR:   i32 = 1 << 2;
+const BISHOP_VECTOR: i32 = 1 << 3;
+const KNIGHT_VECTOR: i32 = 1 << 4;
+const WHITE_PAWN:    i32 = 1 << 5;
+const BLACK_PAWN:    i32 = 1 << 6;
 
 /// Attack vectors, as seen from the kings perspective
 const VECTORS: [(Vector2D, i32, i32); 8+8] = [
@@ -476,8 +477,14 @@ pub fn create_new_board(board: &Board, from: Index2D, to: Index2D) -> Board {
     board.turn = board.turn.invert();
 
     let (is_white_checked, is_black_checked) = checks(&board);
-    board.is_white_checked = is_white_checked;
-    board.is_black_checked = is_black_checked;
+
+    board.checks = chess_structs::NO_CHECKS;
+    if is_white_checked {
+        board.checks |= chess_structs::WHITE_IS_CHECKED;
+    }
+    if is_black_checked {
+        board.checks |= chess_structs::BLACK_IS_CHECKED;
+    }
 
     board
 }
@@ -498,8 +505,8 @@ fn next_move2 (vect: Vector2D, inc: i32, itr: &mut GenericItr, square_checker: f
             itr.current_itrn += 1;
             let new_board = create_new_board(itr.initial_board, itr.initial_pos, new_pos);
             match itr.initial_board.turn {
-                Color::White => if new_board.is_white_checked { None } else { Some(new_board) },
-                Color::Black => if new_board.is_black_checked { None } else { Some(new_board) }
+                Color::White => if new_board.checks & chess_structs::WHITE_IS_CHECKED > 0 { None } else { Some(new_board) },
+                Color::Black => if new_board.checks & chess_structs::BLACK_IS_CHECKED > 0 { None } else { Some(new_board) }
             }
         }
         else {
@@ -601,6 +608,7 @@ fn is_check(board: &Board, pos: Index2D, king: &Piece) -> (Color, bool) {
 
 
 mod tests {
+    use crate::chess_structs;
     use crate::chess_structs::{Board, Piece, Index2D, Color, Kind};
     use crate::generator::{KingItr, KnightItr, RookItr, BishopItr};
     use crate::generator;
@@ -620,12 +628,8 @@ mod tests {
         ],
             turn: Color::White,
             en_passant: None,
-            white_kingside: false,
-            white_queenside: false,
-            black_kingside: false,
-            black_queenside: false,
-            is_white_checked: false,
-            is_black_checked: false,
+            castling_availability: chess_structs::CASTLING_FULL,
+            checks: chess_structs::NO_CHECKS
         };
         let pos = Index2D {x: 4, y:2};
         let mut king_itr= KingItr::new(&board, pos);
@@ -663,12 +667,8 @@ mod tests {
             ],
             turn: Color::White,
             en_passant: None,
-            white_kingside: false,
-            white_queenside: false,
-            black_kingside: false,
-            black_queenside: false,
-            is_white_checked: false,
-            is_black_checked: false,
+            castling_availability: chess_structs::CASTLING_FULL,
+            checks: chess_structs::NO_CHECKS
         };
         let pos = Index2D {x: 4, y:2};
         let mut knight_iter = KnightItr::new(&board, pos);
@@ -726,12 +726,8 @@ mod tests {
             ],
             turn: Color::Black,
             en_passant: None,
-            white_kingside: false,
-            white_queenside: false,
-            black_kingside: false,
-            black_queenside: false,
-            is_white_checked: false,
-            is_black_checked: false,
+            castling_availability: chess_structs::CASTLING_FULL,
+            checks: chess_structs::NO_CHECKS
         };
         let pos = Index2D {x: 4, y:2};
         let mut rook_iter = RookItr::new(&board, pos);
@@ -762,12 +758,8 @@ mod tests {
             ],
             turn: Color::Black,
             en_passant: None,
-            white_kingside: false,
-            white_queenside: false,
-            black_kingside: false,
-            black_queenside: false,
-            is_white_checked: false,
-            is_black_checked: false,
+            castling_availability: chess_structs::CASTLING_FULL,
+            checks: chess_structs::NO_CHECKS
         };
         let pos = Index2D {x: 2, y:1};
         let mut bishop_iter = BishopItr::new(&board, pos);
@@ -790,7 +782,7 @@ mod tests {
                 if new_sq == friendly_sq {
                     continue;
                 }
-                let mut board = Board::new(Color::White, None, false, false, false, false, false, false);
+                let mut board = Board::new(Color::White, None, chess_structs::CASTLING_FULL, chess_structs::NO_CHECKS);
                 board.squares[y][x] = Some(Piece { kind: Kind::King, color: Color::White });
                 board.squares[attacker_sq.y][attacker_sq.x] = Some(Piece { kind: Kind::Pawn, color: Color::Black });
                 board.squares[friendly_sq.y][friendly_sq.x] = Some(Piece { kind: Kind::Pawn, color: Color::White });
@@ -816,7 +808,7 @@ mod tests {
                 if new_sq == friendly_sq {
                     continue;
                 }
-                let mut board = Board::new( Color::Black, None, false, false, false, false, false, false);
+                let mut board = Board::new( Color::Black, None, chess_structs::CASTLING_FULL, chess_structs::NO_CHECKS);
                 board.squares[y][x] = Some(Piece { kind: Kind::King, color: Color::Black });
                 board.squares[attacker_sq.y][attacker_sq.x] = Some(Piece { kind: Kind::Pawn, color: Color::White });
                 board.squares[friendly_sq.y][friendly_sq.x] = Some(Piece { kind: Kind::Pawn, color: Color::Black });
@@ -856,7 +848,7 @@ mod tests {
                 if new_sq == friendly_sq {
                     continue;
                 }
-                let mut board = Board::new( Color::White, None, false, false, false, false, false, false);
+                let mut board = Board::new( Color::White, None, chess_structs::CASTLING_FULL, chess_structs::NO_CHECKS);
                 board.squares[y][x] = Some(Piece { kind: Kind::King, color: Color::White });
                 board.squares[attacker_sq.y][attacker_sq.x] = Some(Piece { kind: Kind::Knight, color: Color::Black });
                 board.squares[friendly_sq.y][friendly_sq.x] = Some(Piece { kind: Kind::Knight, color: Color::White });
@@ -894,7 +886,7 @@ mod tests {
                 if new_sq == friendly_sq {
                     continue;
                 }
-                let mut board = Board::new( Color::White, None, false, false, false, false, false, false);
+                let mut board = Board::new( Color::White, None, chess_structs::CASTLING_FULL, chess_structs::NO_CHECKS);
                 board.squares[y][x] = Some(Piece { kind: Kind::King, color: Color::White });
                 board.squares[attacker_sq.y][attacker_sq.x] = Some(Piece { kind: Kind::Rook, color: Color::Black });
                 board.squares[friendly_sq.y][friendly_sq.x] = Some(Piece { kind: Kind::Rook, color: Color::White });

@@ -1,6 +1,22 @@
 
 use std::ops;
 
+pub type CastlingBitField = u32;
+pub type ChecksBitField = u8;
+
+pub const WHITE_KINGSIDE: CastlingBitField  = 1 << 0;
+pub const WHITE_QUEENSIDE: CastlingBitField = 1 << 1;
+pub const BLACK_KINGSIDE: CastlingBitField  = 1 << 2;
+pub const BLACK_QUEENSIDE: CastlingBitField = 1 << 3;
+
+pub const CASTLING_UNAVAILABLE: CastlingBitField = 0;
+pub const CASTLING_FULL: CastlingBitField = WHITE_KINGSIDE | WHITE_QUEENSIDE | BLACK_KINGSIDE | BLACK_QUEENSIDE;
+
+pub const WHITE_IS_CHECKED: ChecksBitField = 1 << 0;
+pub const BLACK_IS_CHECKED: ChecksBitField = 1 << 1;
+
+pub const NO_CHECKS: ChecksBitField = 0;
+
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Color {
     White,
@@ -75,12 +91,8 @@ pub struct Board {
     pub squares: [[Option<Piece>; 8]; 8],
     pub turn: Color,
     pub en_passant: Option<Index2D>,
-    pub white_kingside: bool,
-    pub white_queenside: bool,
-    pub black_kingside: bool,
-    pub black_queenside: bool,
-    pub is_white_checked: bool,
-    pub is_black_checked: bool,
+    pub castling_availability: u32,
+    pub checks: u8,
 }
 
 impl Board {
@@ -106,26 +118,15 @@ impl Board {
         println!();
     }
 
-    pub fn new(turn: Color,
-               en_passant: Option<Index2D>,
-               white_kingside: bool,
-               white_queenside: bool,
-               black_kingside: bool,
-               black_queenside: bool,
-               is_white_checked: bool,
-               is_black_checked: bool) -> Board {
+    pub fn new(turn: Color, en_passant: Option<Index2D>, castling_availability: CastlingBitField, checks: ChecksBitField) -> Board {
         Board {
             squares: [
                 [None; 8], [None; 8], [None; 8], [None; 8], [None; 8], [None; 8], [None; 8], [None; 8]
             ],
             turn,
             en_passant,
-            white_kingside,
-            white_queenside,
-            black_kingside,
-            black_queenside,
-            is_white_checked,
-            is_black_checked
+            castling_availability,
+            checks
         }
     }
 }

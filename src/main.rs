@@ -47,12 +47,8 @@ fn main() {
         ],
         turn: Color::White,
         en_passant: None,
-        white_kingside: false,
-        white_queenside: false,
-        black_kingside: false,
-        black_queenside: false,
-        is_white_checked: false,
-        is_black_checked: false,
+        castling_availability: chess_structs::CASTLING_FULL,
+        checks: chess_structs::NO_CHECKS
     };
     starting_board.print();
 
