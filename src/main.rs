@@ -5,32 +5,46 @@ mod evaluator;
 mod minimax;
 mod game_state;
 mod libmappings;
+mod args;
 
-//use san_rs;
+use std::process;
+use args::FryArgs;
 use crate::chess_structs::{Board, Piece, Kind, Color};
 use crate::game_state::GameState;
-use clap::{App, Arg, ArgMatches};
-use std::process;
-use std::fs;
-use std::io::Read;
+use crate::args::ArgError;
 
-const ERROR_ARG_INVALID: i32 = 1;
 
-const ARG_FILE: &str = "file";
-const ARG_COLOR: &str = "color";
+const ERROR_ARG: i32 = 1;
 
-struct FryArgs {
-    color: Color,
-    load_file: Option<fs::File>
+enum ExitCodes {
+    InvalidArgument,
+    IOError
+}
+
+impl ExitCodes {
+    fn code(self) -> i32 {
+        match self {
+            ExitCodes::InvalidArgument => 2,
+            ExitCodes::IOError => 1,
+        }
+    }
 }
 
 fn main() {
 
-    let FryArgs {color: fry_color, load_file } = match parse_args() {
+    let FryArgs {color: fry_color, load_file } = match args::parse_args() {
         Ok(args) => args,
-        Err((code, msg)) => {
-            eprintln!("{}", msg);
-            process::exit(code);
+        Err(error) => {
+            match error {
+                ArgError::Required(msg) => {
+                    eprintln!("{}", msg);
+                },
+                ArgError::Invalid(msg, values) => {
+                    eprintln!("{}\n(expected {}; got {})", msg, values.expected, values.actual);
+                },
+            }
+
+            process::exit(ExitCodes::InvalidArgument.code());
         }
     };
 
@@ -74,37 +88,3 @@ fn main() {
         }
     }
 }
-
-fn parse_args() -> Result<FryArgs, (i32, &'static str)> {
-    let args = App::new("fry chess engine")
-        .version("0.1.0")
-        .about("Wait, I'm having one of those things, you know, a headache with pictures.")
-        .arg(Arg::with_name(ARG_FILE)
-            .short("f")
-            .long("file")
-            .takes_value(true)
-            .help("path to .fen or .pgn file to load as starting point"))
-        .arg(Arg::with_name(ARG_COLOR)
-            .short("c")
-            .long("color")
-            .takes_value(true)
-            .help("the color fry shall play as (w or b, default b)"))
-        .get_matches();
-
-    let color = args.value_of(ARG_COLOR).unwrap_or("b");
-    let color = match color {
-        "w" => Some(Color::White),
-        "b" => Some(Color::Black),
-        _ => None
-    };
-
-    if let None = color {
-        return Err((ERROR_ARG_INVALID, "color must be either w or b (for white and black respectively)"));
-    }
-
-    return Ok(FryArgs {
-        color: color.unwrap(),
-        load_file: None
-    });
-}
-
