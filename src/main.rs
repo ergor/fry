@@ -12,6 +12,8 @@ use args::FryArgs;
 use crate::chess_structs::{Board, Piece, Kind, Color};
 use crate::game_state::GameState;
 use crate::args::ArgError;
+use fen_rs::parse;
+use game_state::map_from_libfen;
 
 
 const ERROR_ARG: i32 = 1;
@@ -48,43 +50,51 @@ fn main() {
         }
     };
 
-    let starting_board = Board {
-        squares: [
-            [None; 8], // bottom of board (y = rank -1 = 0)
-            [None; 8],
-            [None, None, None, None, Some(Piece{kind: Kind::King, color: Color::White}), None, None, Some(Piece{kind: Kind::Pawn, color: Color::White})],
-            [None, Some(Piece{kind: Kind::King, color: Color::Black}), Some(Piece{kind: Kind::Rook, color: Color::Black}), None, Some(Piece{kind: Kind::Pawn, color: Color::White}), None, None, None],
-            [None; 8],
-            [None; 8],
-            [None, None, Some(Piece{kind: Kind::Queen, color: Color::White}), None, None, None, None, None],
-            [None; 8], // top of board (y = rank -1 = 7)
-        ],
-        turn: Color::White,
-        en_passant: None,
-        castling_availability: chess_structs::CASTLING_FULL,
-        checks: chess_structs::NO_CHECKS
-    };
-    starting_board.print();
+    let fen_string = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+//    let fen_string = "r3k2r/p2ppp2/8/8/8/8/P2PP1PP/R1B1KB1R w KQkq - 0 1";
+    let fen_state_result = parse(fen_string);
+    match fen_state_result {
+        Ok(state) => {
+            let game_state = map_from_libfen(Color::Black, state);
+            let starting_board = game_state.board_state;
 
-    let game_state = GameState::new(fry_color, starting_board);
+            starting_board.print();
 
-    let mut board = starting_board;
-    let plies = 0; // half moves played
-    loop {
-        if board.turn == fry_color {
-            if let Some(new_board) = minimax::search(&board) {
-                board = new_board;
-                board.print();
-            } else {
-                println!("no more legal moves");
-                break;
+            let game_state = GameState::new(fry_color, starting_board);
+
+            let mut board = starting_board;
+            let plies = 0; // half moves played
+            loop {
+                if board.turn == fry_color {
+                    let mut read_buf = String::new();
+                    print!("move> ");
+                    let player_move = std::io::stdin().read_line(&mut read_buf);
+//                    board.turn = board.turn.invert();
+                    if let Some(new_board) = minimax::search(&board) {
+                        board = new_board;
+                        board.print();
+                        print!("B");
+                    } else {
+                        println!("no more legal moves");
+                        break;
+                    }
+                }
+                else {
+                    let mut read_buf = String::new();
+                    print!("move> ");
+                    let player_move = std::io::stdin().read_line(&mut read_buf);
+//                    board.turn = board.turn.invert();
+                    if let Some(new_board) = minimax::search(&board) {
+                        board = new_board;
+                        board.print();
+                        print!("A");
+                    } else {
+                        println!("no more legal moves");
+                        break;
+                    }
+                }
             }
         }
-        else {
-            let mut read_buf = String::new();
-            print!("move> ");
-            let player_move = std::io::stdin().read_line(&mut read_buf);
-            board.turn = board.turn.invert();
-        }
+        Err(..) => {}
     }
 }

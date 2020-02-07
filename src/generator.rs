@@ -114,6 +114,7 @@ impl<'a> Iterator for IteratorItr<'a> {
                                 let queen_itr = QueenItr::new(self.board, Index2D{x: self.x, y: self.y});
                                 Some(Box::new(queen_itr))
                             }
+                            _ => None
                         }
                     } else {
                         self.next()
@@ -192,6 +193,7 @@ impl<'a> Iterator for QueenItr<'a> {
 }
 
 fn next_long_move(itr: &mut GenericItr, is_up_down:bool, is_diagonal:bool) -> Option<Board> {
+    //TODO can jump trough enemies. deoes not check if last move vas take
     match itr.current_itrn {
         1 ..= 7 => {
             if !is_up_down {
@@ -200,7 +202,7 @@ fn next_long_move(itr: &mut GenericItr, is_up_down:bool, is_diagonal:bool) -> Op
             } else {
                 let x = itr.current_itrn as i64;
                 let y = 0;
-                let next_board = next_move(Vector2D::new(x, y), 1, itr);
+                let next_board = next_move(Vector2D::new(x, y), 1, 8, itr);
                 if next_board.is_none() {
                     itr.current_itrn = 8;
                     next_long_move(itr, is_up_down, is_diagonal)
@@ -212,7 +214,7 @@ fn next_long_move(itr: &mut GenericItr, is_up_down:bool, is_diagonal:bool) -> Op
         8 ..= 14 => {
             let x = -(itr.current_itrn as i64 -7);
             let y = 0;
-            let next_board = next_move(Vector2D::new(x, y), 1, itr);
+            let next_board = next_move(Vector2D::new(x, y), 1, 15, itr);
             if next_board.is_none() {
                 itr.current_itrn = 15;
                 next_long_move(itr, is_up_down, is_diagonal)
@@ -223,7 +225,7 @@ fn next_long_move(itr: &mut GenericItr, is_up_down:bool, is_diagonal:bool) -> Op
         15 ..= 21 => {
             let x = 0;
             let y = itr.current_itrn as i64 - 14;
-            let next_board = next_move(Vector2D::new(x, y), 1, itr);
+            let next_board = next_move(Vector2D::new(x, y), 1, 22, itr);
             if next_board.is_none() {
                 itr.current_itrn = 22;
                 next_long_move(itr, is_up_down, is_diagonal)
@@ -234,7 +236,7 @@ fn next_long_move(itr: &mut GenericItr, is_up_down:bool, is_diagonal:bool) -> Op
         22 ..= 28 => {
             let x = 0;
             let y = -(itr.current_itrn as i64 - 21);
-            let next_board = next_move(Vector2D::new(x, y), 1, itr);
+            let next_board = next_move(Vector2D::new(x, y), 1, 29, itr);
             if next_board.is_none() {
                 itr.current_itrn = 29;
                 next_long_move(itr, is_up_down, is_diagonal)
@@ -248,7 +250,7 @@ fn next_long_move(itr: &mut GenericItr, is_up_down:bool, is_diagonal:bool) -> Op
             } else {
                 let x = itr.current_itrn as i64 - 28;
                 let y = itr.current_itrn as i64 - 28;
-                let next_board = next_move(Vector2D::new(x, y), 1, itr);
+                let next_board = next_move(Vector2D::new(x, y), 1, 36, itr);
                 if next_board.is_none() {
                     itr.current_itrn = 36;
                     next_long_move(itr, is_up_down, is_diagonal)
@@ -260,7 +262,7 @@ fn next_long_move(itr: &mut GenericItr, is_up_down:bool, is_diagonal:bool) -> Op
         36 ..= 42 => {
             let x = -(itr.current_itrn as i64 - 35);
             let y = itr.current_itrn as i64 - 35;
-            let next_board = next_move(Vector2D::new(x, y), 1, itr);
+            let next_board = next_move(Vector2D::new(x, y), 1, 43, itr);
             if next_board.is_none() {
                 itr.current_itrn = 43;
                 next_long_move(itr, is_up_down, is_diagonal)
@@ -271,7 +273,7 @@ fn next_long_move(itr: &mut GenericItr, is_up_down:bool, is_diagonal:bool) -> Op
         43 ..= 49 => {
             let x = itr.current_itrn as i64 - 42;
             let y = -(itr.current_itrn as i64 - 42);
-            let next_board = next_move(Vector2D::new(x, y), 1, itr);
+            let next_board = next_move(Vector2D::new(x, y), 1, 50, itr);
             if next_board.is_none() {
                 itr.current_itrn = 50;
                 next_long_move(itr, is_up_down, is_diagonal)
@@ -282,7 +284,7 @@ fn next_long_move(itr: &mut GenericItr, is_up_down:bool, is_diagonal:bool) -> Op
         50 ..= 56 => {
             let x = -(itr.current_itrn as i64 - 49);
             let y = -(itr.current_itrn as i64 - 49);
-            let next_board = next_move(Vector2D::new(x, y), 1, itr);
+            let next_board = next_move(Vector2D::new(x, y), 1, 57, itr);
             if next_board.is_none() {
                 None
             } else {
@@ -312,28 +314,28 @@ impl<'a> Iterator for KingItr<'a> {
         let mut out_of_moves = false;
         let board = match self.0.current_itrn {
             1 => {
-                next_move(Vector2D::new(1, 0), 1, &mut self.0)
+                next_move(Vector2D::new(1, 0), 3, 2, &mut self.0)
             }
             2 => {
-                next_move(Vector2D::new(1, 1), 1,  &mut self.0)
+                next_move(Vector2D::new(1, 1), 2, 3, &mut self.0)
             }
             3 => {
-                next_move(Vector2D::new(1, -1), 1, &mut self.0)
+                next_move(Vector2D::new(1, -1), 1, 4, &mut self.0)
             }
             4 => {
-                next_move(Vector2D::new(-1, 0), 1, &mut self.0)
+                next_move(Vector2D::new(-1, 0), 3, 5, &mut self.0)
             }
             5 => {
-                next_move(Vector2D::new(-1, 1), 1, &mut self.0)
+                next_move(Vector2D::new(-1, 1), 2, 6, &mut self.0)
             }
             6 => {
-                next_move(Vector2D::new(-1, -1), 1, &mut self.0)
+                next_move(Vector2D::new(-1, -1), 1, 7, &mut self.0)
             }
             7 => {
-                next_move(Vector2D::new(0, -1), 1, &mut self.0)
+                next_move(Vector2D::new(0, -1), 3, 8, &mut self.0)
             }
             8 => {
-                next_move(Vector2D::new(0, 1), 1,  &mut self.0)
+                next_move(Vector2D::new(0, 1), 2,  9, &mut self.0)
             }
             _ => {
                 out_of_moves = true;
@@ -370,28 +372,28 @@ impl<'a> Iterator for KnightItr<'a> {
         let mut out_of_moves = false;
         let board = match self.0.current_itrn {
             1 => {
-                next_move(Vector2D::new(2, 1), 1, &mut self.0)
+                next_move(Vector2D::new(2, 1), 1, 2,  &mut self.0)
             }
             2 => {
-                next_move(Vector2D::new(2, -1), 1,  &mut self.0)
+                next_move(Vector2D::new(2, -1), 1, 3,  &mut self.0)
             }
             3 => {
-                next_move(Vector2D::new(-2, 1), 1, &mut self.0)
+                next_move(Vector2D::new(-2, 1), 1, 4, &mut self.0)
             }
             4 => {
-                next_move(Vector2D::new(-2, 1), 1, &mut self.0)
+                next_move(Vector2D::new(-2, 1), 1, 5, &mut self.0)
             }
             5 => {
-                next_move(Vector2D::new(1, 2), 1, &mut self.0)
+                next_move(Vector2D::new(1, 2), 1, 6, &mut self.0)
             }
             6 => {
-                next_move(Vector2D::new(1, -2), 1, &mut self.0)
+                next_move(Vector2D::new(1, -2), 1, 7, &mut self.0)
             }
             7 => {
-                next_move(Vector2D::new(-1, 2), 1, &mut self.0)
+                next_move(Vector2D::new(-1, 2), 1, 8,  &mut self.0)
             }
             8 => {
-                next_move(Vector2D::new(-1, -2), 1,  &mut self.0)
+                next_move(Vector2D::new(-1, -2), 1, 9, &mut self.0)
             }
             _ => {
                 out_of_moves = true;
@@ -425,7 +427,7 @@ impl<'a> Iterator for PawnItr<'a> {
     type Item = Board;
 
     fn next(&mut self) -> Option<Board> {
-        let mut side = 0;
+        let mut side = 1;
         let mut start_pos_y = 1;
         if self.0.initial_board.turn == Color::Black {
             side = -1;
@@ -435,20 +437,21 @@ impl<'a> Iterator for PawnItr<'a> {
         let mut out_of_moves = false;
         let board = match self.0.current_itrn {
             1 => {
-                if self.0.initial_pos.y == start_pos_y {
+                if self.0.initial_pos.y != start_pos_y {
+                    self.0.current_itrn += 1;
                    None
                 } else {
-                    next_move2(Vector2D::new(0, 2 * side), 1, &mut self.0, is_square_empty)
+                    next_move2(Vector2D::new(0, 2 * side), 1, 2,  &mut self.0, is_square_empty)
                 }
             }
             2 => {
-                next_move2(Vector2D::new(0, 1 * side), 1,  &mut self.0, is_square_empty)
+                next_move2(Vector2D::new(0, 1 * side), 1, 3,   &mut self.0, is_square_empty)
             }
             3 => {
-                next_move2(Vector2D::new(-1, 1 * side), 1, &mut self.0, is_square_enemy)
+                next_move2(Vector2D::new(-1, 1 * side), 1, 4, &mut self.0, is_square_enemy)
             }
             4 => {
-                next_move2(Vector2D::new(1, 1 * side), 1, &mut self.0, is_square_enemy)
+                next_move2(Vector2D::new(1, 1 * side), 1, 5, &mut self.0, is_square_enemy)
             }
             _ => {
                 out_of_moves = true;
@@ -489,11 +492,11 @@ pub fn create_new_board(board: &Board, from: Index2D, to: Index2D) -> Board {
     board
 }
 
-fn next_move (vect: Vector2D, inc: i32, itr: &mut GenericItr) -> Option<Board> {
-    next_move2(vect, inc, itr, is_square_empty_or_enemy)
+fn next_move (vect: Vector2D, inc: i32, inc2:i32, itr: &mut GenericItr) -> Option<Board> {
+    next_move2(vect, inc, inc2, itr, is_square_empty_or_enemy)
 }
 
-fn next_move2 (vect: Vector2D, inc: i32, itr: &mut GenericItr, square_checker: fn(board: &Board, to: Index2D) -> bool) -> Option<Board> {
+fn next_move2 (vect: Vector2D, inc: i32, inc2:i32, itr: &mut GenericItr, square_checker: fn(board: &Board, to: Index2D) -> bool) -> Option<Board> {
     let new_pos = itr.initial_pos + vect;
 
     if let Some(new_pos) = new_pos {
@@ -502,7 +505,11 @@ fn next_move2 (vect: Vector2D, inc: i32, itr: &mut GenericItr, square_checker: f
             None
         }
         else if square_checker(itr.initial_board, new_pos) {
-            itr.current_itrn += 1;
+            if is_square_empty(itr.initial_board, new_pos) {
+                itr.current_itrn = inc2;
+            } else {
+                itr.current_itrn +=1;
+            }
             let new_board = create_new_board(itr.initial_board, itr.initial_pos, new_pos);
             match itr.initial_board.turn {
                 Color::White => if new_board.checks & chess_structs::WHITE_IS_CHECKED > 0 { None } else { Some(new_board) },

@@ -6,5 +6,5 @@ edition = "2018"
 
 [dependencies]
 san-rs = "0"
-fen-rs = { path = "/home/erol/docs/github/_self/fen-rs" }
+fen-rs = { path = "../libfen-rs" }
 clap = { version = "2.33", default-features = false, features = [ "color" ] }
