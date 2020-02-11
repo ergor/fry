@@ -193,7 +193,6 @@ impl<'a> Iterator for QueenItr<'a> {
 }
 
 fn next_long_move(itr: &mut GenericItr, is_up_down:bool, is_diagonal:bool) -> Option<Board> {
-    //TODO can jump trough enemies. deoes not check if last move vas take
     match itr.current_itrn {
         1 ..= 7 => {
             if !is_up_down {
@@ -505,7 +504,7 @@ fn next_move2 (vect: Vector2D, inc: i32, inc2:i32, itr: &mut GenericItr, square_
             None
         }
         else if square_checker(itr.initial_board, new_pos) {
-            if is_square_empty(itr.initial_board, new_pos) {
+            if is_square_enemy(itr.initial_board, new_pos) {
                 itr.current_itrn = inc2;
             } else {
                 itr.current_itrn +=1;
