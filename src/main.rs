@@ -6,12 +6,15 @@ mod minimax;
 mod game_state;
 mod libmappings;
 mod args;
+mod uci;
+mod engine;
 
 use std::process;
 use args::FryArgs;
 use crate::chess_structs::{Board, Piece, Kind, Color};
 use crate::game_state::GameState;
 use crate::args::ArgError;
+use std::sync::mpsc::Receiver;
 
 enum ExitCodes {
     InvalidArgument,
@@ -63,12 +66,19 @@ fn main() {
 
     let mut board = starting_board;
     let plies = 0; // half moves played
+
+    let (control_tx, next_board_rx) = engine::init_engine();
+
     loop {
+
         if board.turn == fry_color {
             let mut read_buf = String::new();
             print!("move> ");
-            let player_move = std::io::stdin().read_line(&mut read_buf);
-//                    board.turn = board.turn.invert();
+            let read_result = std::io::stdin().read_line(&mut read_buf);
+
+            control_tx.send(engine::Command::Execute(board)).unwrap(); // TODO: error handling
+
+
             if let Some(new_board) = minimax::search(&board) {
                 board = new_board;
                 board.print();
@@ -93,5 +103,9 @@ fn main() {
             }
         }
     }
+}
 
+
+fn on_engine_result(board_rx: engine::EngineReceiver) {
+    let result = board_rx.recv();
 }
