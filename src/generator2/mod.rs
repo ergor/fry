@@ -1,6 +1,13 @@
 // in the search tree: instead of storing whole boards, store only the delta (move) from previous node.
 // root node must be a whole board, but all sub nodes can be derived from deltas.
 
+mod pawn;
+mod bishop;
+mod knight;
+mod rook;
+mod king;
+mod queen;
+
 use crate::{Board, Color, Kind, Piece};
 use crate::chess_structs::{Index2D, Vector2D};
 
@@ -76,18 +83,18 @@ pub fn generate(board: &Board) -> Vec<Delta> {
 
 fn generate_at(board: &Board, piece_pos: Index2D, piece: &Piece) -> Vec<Delta> {
     match piece.kind {
-        Kind::Pawn   => generate_pawn(board, piece_pos, piece.color),
-        Kind::Bishop => generate_bishop(board, piece_pos),
-        Kind::Knight => generate_knight(board, piece_pos),
-        Kind::Rook   => generate_rook(board, piece_pos),
-        Kind::King   => generate_king(board, piece_pos),
-        Kind::Queen  => generate_queen(board, piece_pos),
+        Kind::Pawn   => pawn::generate_pawn(board, piece_pos, piece.color),
+        Kind::Bishop => bishop::generate_bishop(board, piece_pos),
+        Kind::Knight => knight::generate_knight(board, piece_pos),
+        Kind::Rook   => rook::generate_rook(board, piece_pos),
+        Kind::King   => king::generate_king(board, piece_pos),
+        Kind::Queen  => queen::generate_queen(board, piece_pos),
     }
 }
 
 fn is_square_empty(board: &Board, to: Index2D) -> bool {
     match board.get(to) {
-        Some(_) =>  false,
+        Some(_) => false,
         None => true
     }
 }
@@ -106,6 +113,47 @@ fn is_square_empty_or_enemy(board: &Board, to: Index2D) -> bool {
     }
 }
 
+fn is_check(board: &Board, king_pos: Index2D, king: &Piece) -> (Color, bool) {
+
+    let enemy_color = king.color.invert();
+    let mut is_check = false;
+
+    'outer: for (vec, reps, kind_mask) in THREAT_VECTORS.iter() {
+        let mut next_square = king_pos;
+        for rep in 0..*reps {
+            next_square += vec;
+            if next_square.is_out_of_board() {
+                break;
+            }
+            if let Some(piece) = board.get(next_square) {
+                if piece.color == enemy_color {
+                    // check if this piece can attack along this vector
+                    is_check = match piece.kind {
+                        Kind::Pawn => match piece.color {
+                            Color::Black => kind_mask & THREAT_BLACK_PAWN > 0,
+                            Color::White => kind_mask & THREAT_WHITE_PAWN > 0
+                        },
+                        Kind::Bishop => kind_mask & THREAT_BISHOP > 0,
+                        Kind::Knight => kind_mask & THREAT_KNIGHT > 0,
+                        Kind::Rook => kind_mask & THREAT_ROOK > 0,
+                        Kind::King => kind_mask & THREAT_KING > 0,
+                        Kind::Queen => kind_mask & THREAT_QUEEN > 0,
+                    };
+                    if is_check {
+                        break 'outer; // no need to search any more
+                        // TODO: is the above true for knights?
+                    }
+                } else {
+                    break; // a friendly piece is blocking this attack vector; on to the next vector!
+                    // TODO: is the above true for knights?
+                }
+            }
+        }
+    }
+
+    (king.color, is_check)
+}
+
 fn push_if_legal(moves: &mut Vec<Delta>, board: &Board, move_type: MoveType, from: Index2D, to: Index2D) {
     let delta = Delta {
         move_type,
@@ -113,64 +161,4 @@ fn push_if_legal(moves: &mut Vec<Delta>, board: &Board, move_type: MoveType, fro
         dst: to
     };
     moves.push(delta);
-}
-
-fn generate_pawn(board: &Board, piece_pos: Index2D, color: Color) -> Vec<Delta> {
-    let mut moves = Vec::new();
-
-    let delta_y = match color {
-        Color::White => {  1 }
-        Color::Black => { -1 }
-    };
-
-    let pawn_move: fn(Vector2D) = |vector: Vector2D| {
-        if let Some(landing_pos) = piece_pos + vector {
-            if is_square_empty(board, landing_pos) {
-                push_if_legal(&mut moves, board, MoveType::Regular, piece_pos, landing_pos);
-            }
-        } // else the move landed outside of board.
-    };
-
-    let pawn_capture: fn(Vector2D) = |vector: Vector2D| {
-        if let Some(landing_pos) = piece_pos + vector {
-            if is_square_enemy(board, landing_pos) {
-                let captured_piece = board.get(landing_pos).expect("Should have been an enemy");
-                push_if_legal(&mut moves, board, MoveType::Capture(captured_piece), piece_pos, landing_pos);
-            }
-        } // else the move landed outside of board.
-    };
-
-    let one_forward_vect = Vector2D { x: 0, y: delta_y };
-    pawn_move(one_forward_vect);
-
-    let two_forward_vect = Vector2D { x: 0, y: 2 * delta_y };
-    pawn_move(two_forward_vect);
-
-    let capture_right_vect = Vector2D { x: 1, y: delta_y };
-    pawn_capture(capture_right_vect);
-
-    let capture_left_vect = Vector2D { x: -1, y: delta_y };
-    pawn_capture(capture_left_vect);
-
-    return moves;
-}
-
-fn generate_bishop(board: &Board, piece_pos: Index2D) -> Vec<Delta> {
-    Vec::new()
-}
-
-fn generate_knight(board: &Board, piece_pos: Index2D) -> Vec<Delta> {
-    Vec::new()
-}
-
-fn generate_rook(board: &Board, piece_pos: Index2D) -> Vec<Delta> {
-    Vec::new()
-}
-
-fn generate_king(board: &Board, piece_pos: Index2D) -> Vec<Delta> {
-    Vec::new()
-}
-
-fn generate_queen(board: &Board, piece_pos: Index2D) -> Vec<Delta> {
-    Vec::new()
 }
