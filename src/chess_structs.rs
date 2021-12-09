@@ -63,16 +63,22 @@ impl ops::Add<Vector2D> for Index2D {
         let x = (self.x as i64).checked_add(rhs.x);
         let y = (self.y as i64).checked_add(rhs.y);
         if x.is_some() && y.is_some() {
-            Some(Index2D {
+            let result = Index2D {
                 x: x.unwrap() as usize,
                 y: y.unwrap() as usize
-            })
+            };
+            if result.is_out_of_board() {
+                None
+            } else {
+                Some(result)
+            }
         } else {
             None
         }
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub struct Vector2D {
     pub x: i64,
     pub y: i64,
@@ -128,6 +134,10 @@ impl Board {
             castling_availability,
             checks
         }
+    }
+
+    pub fn get(&self, index: Index2D) -> Option<Piece> {
+        self.squares[index.y][index.x]
     }
 }
 

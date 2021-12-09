@@ -6,6 +6,7 @@ mod minimax;
 mod game_state;
 mod libmappings;
 mod args;
+mod generator2;
 
 use std::process;
 use args::FryArgs;
