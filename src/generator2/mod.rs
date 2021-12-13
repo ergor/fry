@@ -7,47 +7,32 @@ mod knight;
 mod rook;
 mod king;
 mod queen;
+mod check_checker;
 
 use crate::{Board, Color, Kind, Piece};
-use crate::chess_structs::{Index2D, Vector2D};
+use crate::chess_structs::{BLACK_KINGSIDE, BLACK_QUEENSIDE, CASTLING_BLACK, CASTLING_WHITE, Index2D, Vector2D, WHITE_KINGSIDE, WHITE_QUEENSIDE};
+use crate::Kind::King;
 
-// Threat vector kind mask bits
-const THREAT_KING      : i32 = 1 << 0;
-const THREAT_QUEEN     : i32 = 1 << 1;
-const THREAT_ROOK      : i32 = 1 << 2;
-const THREAT_BISHOP    : i32 = 1 << 3;
-const THREAT_KNIGHT    : i32 = 1 << 4;
-const THREAT_WHITE_PAWN: i32 = 1 << 5;
-const THREAT_BLACK_PAWN: i32 = 1 << 6;
+const VECTORS_JUMP: [Vector2D; 8] = [
+    Vector2D {x:  2, y:  1},
+    Vector2D {x:  2, y: -1},
+    Vector2D {x:  1, y:  2},
+    Vector2D {x:  1, y: -2},
+    Vector2D {x: -1, y:  2},
+    Vector2D {x: -1, y: -2},
+    Vector2D {x: -2, y:  1},
+    Vector2D {x: -2, y: -1},
+];
 
-/// All possible attack vectors from enemies, as seen from the king's perspective.
-const THREAT_VECTORS: [(Vector2D, i32, i32); 8+8+8] = [
-    (Vector2D {x:  1, y:  1}, 1, THREAT_KING | THREAT_WHITE_PAWN),
-    (Vector2D {x:  1, y:  0}, 1, THREAT_KING                    ),
-    (Vector2D {x:  1, y: -1}, 1, THREAT_KING | THREAT_BLACK_PAWN),
-    (Vector2D {x:  0, y:  1}, 1, THREAT_KING                    ),
-    (Vector2D {x:  0, y: -1}, 1, THREAT_KING                    ),
-    (Vector2D {x: -1, y:  1}, 1, THREAT_KING | THREAT_WHITE_PAWN),
-    (Vector2D {x: -1, y:  0}, 1, THREAT_KING                    ),
-    (Vector2D {x: -1, y: -1}, 1, THREAT_KING | THREAT_BLACK_PAWN),
-
-    (Vector2D {x:  1, y:  1}, 7, THREAT_QUEEN | THREAT_BISHOP),
-    (Vector2D {x:  1, y:  0}, 7, THREAT_QUEEN | THREAT_ROOK  ),
-    (Vector2D {x:  1, y: -1}, 7, THREAT_QUEEN | THREAT_BISHOP),
-    (Vector2D {x:  0, y:  1}, 7, THREAT_QUEEN | THREAT_ROOK  ),
-    (Vector2D {x:  0, y: -1}, 7, THREAT_QUEEN | THREAT_ROOK  ),
-    (Vector2D {x: -1, y:  1}, 7, THREAT_QUEEN | THREAT_BISHOP),
-    (Vector2D {x: -1, y:  0}, 7, THREAT_QUEEN | THREAT_ROOK  ),
-    (Vector2D {x: -1, y: -1}, 7, THREAT_QUEEN | THREAT_BISHOP),
-
-    (Vector2D {x:  1, y:  2}, 1, THREAT_KNIGHT),
-    (Vector2D {x:  2, y:  1}, 1, THREAT_KNIGHT),
-    (Vector2D {x:  2, y: -1}, 1, THREAT_KNIGHT),
-    (Vector2D {x:  1, y: -2}, 1, THREAT_KNIGHT),
-    (Vector2D {x: -1, y: -2}, 1, THREAT_KNIGHT),
-    (Vector2D {x: -2, y: -1}, 1, THREAT_KNIGHT),
-    (Vector2D {x: -2, y:  1}, 1, THREAT_KNIGHT),
-    (Vector2D {x: -1, y:  2}, 1, THREAT_KNIGHT)
+const VECTORS_LINEAR: [Vector2D; 8] = [
+    Vector2D {x:  1, y:  1},
+    Vector2D {x:  1, y:  0},
+    Vector2D {x:  1, y: -1},
+    Vector2D {x:  0, y:  1},
+    Vector2D {x:  0, y: -1},
+    Vector2D {x: -1, y:  1},
+    Vector2D {x: -1, y:  0},
+    Vector2D {x: -1, y: -1},
 ];
 
 #[derive(Debug)]
@@ -56,6 +41,8 @@ pub enum MoveType {
     Regular,
     /// the captured piece is stored here, needed for undoing a move.
     Capture(Piece),
+    /// this move is an en passant move.
+    EnPassant,
     /// long or short castle is derivable from src and dst of the king.
     Castle,
 }
@@ -106,6 +93,13 @@ fn is_square_enemy(board: &Board, to: Index2D) -> bool {
     }
 }
 
+fn is_square_en_passant(board: &Board, to: Index2D) -> bool {
+    match board.en_passant {
+        Some(en_passant_pos) => to == en_passant_pos,
+        None => false
+    }
+}
+
 fn is_square_empty_or_enemy(board: &Board, to: Index2D) -> bool {
     match board.get(to) {
         Some(piece) =>  piece.color != board.turn,
@@ -113,45 +107,77 @@ fn is_square_empty_or_enemy(board: &Board, to: Index2D) -> bool {
     }
 }
 
-fn is_check(board: &Board, king_pos: Index2D, king: &Piece) -> (Color, bool) {
+pub fn make_move(the_move: &Delta, board: &mut Board) {
+    let moving_piece = board.get(the_move.src)
+        .expect("generator: tried to make move from empty square");
 
-    let enemy_color = king.color.invert();
-    let mut is_check = false;
+    let castling_bits = match moving_piece.color {
+        Color::White => CASTLING_WHITE,
+        Color::Black => CASTLING_BLACK,
+    };
+    let is_castling_available = board.castling_availability & castling_bits > 0;
 
-    'outer: for (vec, reps, kind_mask) in THREAT_VECTORS.iter() {
-        let mut next_square = king_pos;
-        for rep in 0..*reps {
-            next_square += vec;
-            if next_square.is_out_of_board() {
-                break;
+    board.set(the_move.src, Option::None);
+    board.set(the_move.dst, Some(moving_piece));
+
+    // deal with weird piece movements
+    match the_move.move_type {
+        MoveType::EnPassant => {
+            let captured_pawn_index = Index2D {
+                x: the_move.dst.x,
+                y: match moving_piece.color {
+                    Color::White => 4,
+                    Color::Black => 3,
+                }
+            };
+            board.set(captured_pawn_index, Option::None);
+        },
+        MoveType::Castle => {
+            // if you castle, you lose all castling options.
+            board.castling_availability &= !castling_bits;
+        },
+        MoveType::Regular if moving_piece.kind == Kind::Rook && moving_piece.color == Color::White && is_castling_available => {
+            // if you move rook, you lose only one castling option.
+            if board.castling_availability & WHITE_KINGSIDE > 0 && the_move.src == KINGSIDE_ROOK_WHITE_INITIAL {
+
             }
-            if let Some(piece) = board.get(next_square) {
-                if piece.color == enemy_color {
-                    // check if this piece can attack along this vector
-                    is_check = match piece.kind {
-                        Kind::Pawn => match piece.color {
-                            Color::Black => kind_mask & THREAT_BLACK_PAWN > 0,
-                            Color::White => kind_mask & THREAT_WHITE_PAWN > 0
-                        },
-                        Kind::Bishop => kind_mask & THREAT_BISHOP > 0,
-                        Kind::Knight => kind_mask & THREAT_KNIGHT > 0,
-                        Kind::Rook => kind_mask & THREAT_ROOK > 0,
-                        Kind::King => kind_mask & THREAT_KING > 0,
-                        Kind::Queen => kind_mask & THREAT_QUEEN > 0,
-                    };
-                    if is_check {
-                        break 'outer; // no need to search any more
-                        // TODO: is the above true for knights?
-                    }
-                } else {
-                    break; // a friendly piece is blocking this attack vector; on to the next vector!
-                    // TODO: is the above true for knights?
+            else if the_move.src == QUEENSIDE_ROOK_WHITE_INITIAL { // is_castling_available && !WHITE_KINGSIDE => QUEENSIDE
+
+            }
+        }
+        MoveType::Regular if moving_piece.kind == Kind::Pawn => {
+            if let Color::White = moving_piece.color {
+                if the_move.src.y == 1 && the_move.dst.y == 3 {
+
                 }
             }
+            if let Color::Black = moving_piece.color {
+                if the_move.src.y == 6 && the_move.dst.y == 4 {
+
+                }
+            }
+        },
+        _ => {},
+    }
+
+    // deal with castling state
+    if board.castling_availability > 0 {
+        if let MoveType::Capture(_) = the_move.move_type {
+
         }
     }
 
-    (king.color, is_check)
+    board.turn = moving_piece.color.invert();
+}
+
+pub fn unmake_move(the_move: &Delta, board: &mut Board) {
+    let reverting_piece = board.get(the_move.dst)
+        .expect("generator: tried to unmake move from empty square");
+
+    board.set(the_move.src, Some(reverting_piece));
+    board.set(the_move.dst, Option::None);
+
+    //...
 }
 
 fn push_if_legal(moves: &mut Vec<Delta>, board: &Board, move_type: MoveType, from: Index2D, to: Index2D) {

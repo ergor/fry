@@ -8,9 +8,11 @@ pub const WHITE_KINGSIDE: CastlingBitField  = 1 << 0;
 pub const WHITE_QUEENSIDE: CastlingBitField = 1 << 1;
 pub const BLACK_KINGSIDE: CastlingBitField  = 1 << 2;
 pub const BLACK_QUEENSIDE: CastlingBitField = 1 << 3;
+pub const CASTLING_WHITE: CastlingBitField = WHITE_KINGSIDE | WHITE_QUEENSIDE;
+pub const CASTLING_BLACK: CastlingBitField = BLACK_KINGSIDE | BLACK_QUEENSIDE;
 
 pub const CASTLING_UNAVAILABLE: CastlingBitField = 0;
-pub const CASTLING_FULL: CastlingBitField = WHITE_KINGSIDE | WHITE_QUEENSIDE | BLACK_KINGSIDE | BLACK_QUEENSIDE;
+pub const CASTLING_FULL: CastlingBitField = CASTLING_WHITE| CASTLING_BLACK;
 
 pub const WHITE_IS_CHECKED: ChecksBitField = 1 << 0;
 pub const BLACK_IS_CHECKED: ChecksBitField = 1 << 1;
@@ -154,12 +156,12 @@ pub enum Kind {
 impl Kind {
     pub fn value(&self) -> i32 {
         match self {
-            Kind::Pawn => 100,
+            Kind::Pawn   => 100,
             Kind::Bishop => 300,
             Kind::Knight => 300,
-            Kind::Rook => 500,
-            Kind::King => 9999,
-            Kind::Queen => 900
+            Kind::Rook   => 500,
+            Kind::King   => 9999,
+            Kind::Queen  => 900
         }
     }
 }
